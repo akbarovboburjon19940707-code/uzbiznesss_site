@@ -1,0 +1,333 @@
+"""
+Biznes Reja Platformasi — Enterprise Edition v2.0
+===================================================
+480 ta reja | 24 kategoriya | 4 faoliyat turi
+Annuitet + Differentsial | NPV, IRR, ROI
+Dinamik Word | Preview + To'lov | Professional UI
+"""
+from flask import Flask, render_template, request, send_file, jsonify
+from flask_wtf.csrf import CSRFProtect
+import os, time, logging, threading, json
+from functools import wraps
+from concurrent.futures import ThreadPoolExecutor
+
+from modules.credit_calculator import hisob_kredit
+from modules.financial_engine import FinancialEngine, safe_float
+from modules.document_engine import create_word_document, convert_to_pdf, merge_pdfs
+from modules.file_manager import (create_session, cleanup_session,
+                                   cleanup_old_sessions, save_upload)
+from modules.validators import validate_form, safe_int
+from modules.business_categories import (
+    get_categories_for_frontend, search_plans, get_faoliyat_turi,
+    FAOLIYAT_TURLARI, KATEGORIYALAR
+)
+from modules.payment import (
+    create_payment, verify_payment, get_payment,
+    get_payment_info, PLAN_PRICE
+)
+
+# ============================================================
+# CONFIG
+# ====================================
+app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'breja-enterprise-2026-key')
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB
+
+csrf = CSRFProtect(app)
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s [%(levelname)s] %(message)s')
+logger = logging.getLogger(__name__)
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+WORD_TEMPLATE = os.path.join(BASE_DIR, "template.docx")
+
+# Thread pool: 1000 user uchun
+executor = ThreadPoolExecutor(max_workers=8)
+
+# Rate limiter
+_rate_store = {}
+_rate_lock = threading.Lock()
+
+def rate_limit(max_req=15, window=60):
+    def dec(f):
+        @wraps(f)
+        def w(*a, **kw):
+            ip = request.remote_addr
+            now = time.time()
+            with _rate_lock:
+                _rate_store.setdefault(ip, [])
+                _rate_store[ip] = [t for t in _rate_store[ip] if now - t < window]
+                if len(_rate_store[ip]) >= max_req:
+                    return jsonify({"success": False,
+                                    "errors": ["Juda ko'p so'rov. 1 daqiqa kuting."]}), 429
+                _rate_store[ip].append(now)
+            return f(*a, **kw)
+        return w
+    return dec
+
+# Background cleanup
+def _periodic_cleanup():
+    while True:
+        time.sleep(1800)
+        cleanup_old_sessions(1)
+_cleanup_thread = threading.Thread(target=_periodic_cleanup, daemon=True)
+_cleanup_thread.start()
+
+# ============================================================
+# ROUTES — ASOSIY
+# ============================================================
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
+# ============================================================
+# ROUTES — KATEGORIYALAR VA QIDIRISH
+# ============================================================
+@app.route("/api/categories", methods=["GET"])
+@csrf.exempt
+def api_categories():
+    """Barcha kategoriyalar, faoliyat turlari va reja nomlarini qaytaradi."""
+    try:
+        data = get_categories_for_frontend()
+        return jsonify({"success": True, "data": data})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/search", methods=["GET"])
+@csrf.exempt
+def api_search():
+    """Reja nomlarini qidirish."""
+    try:
+        query = request.args.get("q", "")
+        limit = min(int(request.args.get("limit", 20)), 50)
+        results = search_plans(query, limit)
+        return jsonify({"success": True, "results": results})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+
+
+# ============================================================
+# ROUTES — TO'LOV TIZIMI
+# ============================================================
+@app.route("/api/payment/info", methods=["GET"])
+@csrf.exempt
+def api_payment_info():
+    """To'lov ma'lumotlarini qaytaradi."""
+    return jsonify({"success": True, "data": get_payment_info()})
+
+
+@app.route("/api/payment/create", methods=["POST"])
+@csrf.exempt
+def api_payment_create():
+    """Yangi to'lov yaratish."""
+    try:
+        d = request.get_json()
+        method = d.get("method", "demo")
+        payment = create_payment(method)
+        return jsonify({"success": True, "payment": payment})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+
+
+@app.route("/api/payment/verify", methods=["POST"])
+@csrf.exempt
+def api_payment_verify():
+    """To'lovni tasdiqlash."""
+    try:
+        d = request.get_json()
+        payment_id = d.get("payment_id", "")
+        result = verify_payment(payment_id)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+
+
+# ============================================================
+# ROUTES — MOLIYAVIY
+# ============================================================
+@app.route("/api/kredit", methods=["POST"])
+@csrf.exempt
+def api_kredit():
+    try:
+        d = request.get_json()
+        summa = safe_float(d.get("kredit"))
+        foiz = safe_float(d.get("foiz"))
+        muddat = safe_int(d.get("muddat"), 1)
+        imtiyoz = safe_int(d.get("imtiyoz"))
+        turi = d.get("turi", "annuitet")
+
+        natija = hisob_kredit(summa, foiz, muddat, imtiyoz, turi)
+        return jsonify({"success": True, "data": natija.to_dict()})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+
+
+@app.route("/api/moliyaviy-tahlil", methods=["POST"])
+@csrf.exempt
+def api_analysis():
+    try:
+        d = request.get_json()
+        model = FinancialEngine(d) 
+        return jsonify({"success": True, "data": model.indicators})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+
+
+# ============================================================
+# ROUTES — PREVIEW (Biznes reja oldindan ko'rish)
+# ============================================================
+@app.route("/api/preview", methods=["POST"])
+@csrf.exempt
+def api_preview():
+    """Biznes reja preview generatsiya qilish."""
+    try:
+        d = request.get_json() or {}
+        model = FinancialEngine(d)
+        context = model.get_context()
+        tables = []
+        for tbl in model.get_all_tables():
+            tables.append({
+                "title": tbl.get("title", ""),
+                "ilova": tbl.get("ilova", ""),
+                "headers": tbl.get("headers", []),
+                "rows": _serialize_rows(tbl.get("rows", [])),
+            })
+        
+        return jsonify({
+            "success": True,
+            "data": {
+                "context": _serialize_context(context),
+                "tables": tables,
+                "indicators": model.indicators,
+                "faoliyat_turi": model.faoliyat_turi,
+                "faoliyat_nomi": model.cost_structure["nomi"],
+            }
+        })
+    except Exception as e:
+        logger.error(f"Preview xatolik: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 400
+
+
+def _serialize_rows(rows):
+    """Jadval qatorlarini JSON uchun tozalash."""
+    result = []
+    for row in rows:
+        cleaned = []
+        for cell in row:
+            if isinstance(cell, float):
+                cleaned.append(round(cell, 2))
+            else:
+                cleaned.append(cell)
+        result.append(cleaned)
+    return result
+
+
+def _serialize_context(ctx):
+    """Context ni JSON uchun tozalash."""
+    clean = {}
+    for k, v in ctx.items():
+        if isinstance(v, (str, int, float, bool, type(None))):
+            clean[k] = v
+    return clean
+
+
+# ============================================================
+# ROUTES — SAVE (PDF yaratish)
+# ============================================================
+@app.route("/save", methods=["POST"])
+@rate_limit(max_req=10, window=60)
+def save():
+    session_dir = None
+    try:
+        cleanup_old_sessions(2)
+
+        # 1. Validatsiya
+        errors = validate_form(request.form)
+        if errors:
+            return jsonify({"success": False, "errors": errors}), 400
+
+        # 2. Session
+        session_dir, sid = create_session()
+        logger.info(f"Session: {sid}")
+
+        # 3. Fayllarni saqlash
+        uploaded_files = {}
+        for key in ['business_image', 'product_photo', 'video', 'extra_doc']:
+            if key in request.files:
+                f = request.files[key]
+                path = save_upload(f, session_dir)
+                if path:
+                    uploaded_files[key] = path
+
+        # 4. Moliyaviy Model (Barcha hisob-kitoblar shu yerda)
+        model = FinancialEngine(request.form)
+        analysis = model.indicators
+        
+        # 5. Word Context tayyorlash
+        extra_doc_file = request.files.get("extra_doc")
+        extra_doc_text = f"Ilova qilingan fayl: {extra_doc_file.filename}" if extra_doc_file and extra_doc_file.filename else "Qo'shimcha hujjat taqdim etilmagan."
+
+        ai_context = model.get_context()
+        ai_context.update({
+            "extra_doc": extra_doc_text,
+            "mundarija": "1. Mahfiyligini ta`minlash memorandumi\n2. Loyiha tashabbuskori to'g'risida ma'lumot\n3. Loyiha maqsadi va yo'nalishi\n4. Bozor kon'yunkturasi tahlili\n5. Loyihaning SWOT tahlili\n6. Moliyaviy reja va iqtisodiy tahlil\n7. Xulosa\nIlovalar",
+            "mahfiyligini_ta_minlash_memorandumi": "Ushbu biznes reja loyiha tashabbuskori va moliyalashtiruvchi muassasalar o'rtasidagi muzokaralar uchun mo'ljallangan va tarkibida tijorat siri hamda maxfiy ma'lumotlar mavjud.",
+            "xulosa": f"Tahlillar natijasida ushbu loyiha tijorat jihatdan yuqori daromad keltirishi aniqlandi. Hisoblangan rentabellik ko'rsatkichlari (NPV={analysis['npv']} so'm, ROI={analysis['roi']}%) mustahkam kafolatlangan."
+        })
+
+        # 6. Word yaratish + Dinamik jadvallar qo'shish
+        word_path = os.path.join(session_dir, "biznes_reja.docx")
+        create_word_document(WORD_TEMPLATE, word_path, ai_context, uploaded_files, model=model)
+
+        # 7. PDF konvertatsiya
+        word_pdf = convert_to_pdf(word_path, os.path.join(session_dir, "word.pdf"))
+        
+        pdfs = [p for p in [word_pdf] if p]
+        
+        # Qo'shimcha hujjatlarni qo'shish
+        if 'extra_doc' in uploaded_files:
+            extra_path = uploaded_files['extra_doc']
+            ext = os.path.splitext(extra_path)[1].lower()
+            if ext == '.pdf':
+                pdfs.append(extra_path)
+            elif ext in ['.doc', '.docx']:
+                extra_pdf = convert_to_pdf(extra_path, os.path.join(session_dir, "extra.pdf"))
+                if extra_pdf:
+                    pdfs.append(extra_pdf)
+
+        if not pdfs:
+            return jsonify({"success": False, "errors": ["PDF yaratib bo'lmadi."]}), 500
+
+        # 8. Birlashtirish
+        final = os.path.join(session_dir, "final.pdf")
+        merge_pdfs(pdfs, final)
+
+        logger.info(f"✅ PDF tayyor (Word+Tables): {sid}")
+        
+        resp = send_file(final, as_attachment=True,
+                         download_name="biznes_reja.pdf", mimetype="application/pdf")
+
+        @resp.call_on_close
+        def _cleanup():
+            cleanup_session(session_dir)
+
+        return resp
+
+    except Exception as e:
+        logger.error(f"Xatolik: {e}", exc_info=True)
+        if session_dir: cleanup_session(session_dir)
+        return jsonify({"success": False, "errors": [f"Xatolik: {str(e)}"]}), 500
+
+
+@app.errorhandler(413)
+def too_large(e):
+    return jsonify({"success": False, "errors": ["Fayl 50MB dan katta"]}), 413
+
+@app.errorhandler(500)
+def server_err(e):
+    return jsonify({"success": False, "errors": ["Server xatosi"]}), 500
+
+if __name__ == "__main__":
+    app.run(debug=True, port=5000)

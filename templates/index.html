@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Professional biznes reja kalkulyatori — 480 ta yo'nalish, kredit hisoblash, NPV, IRR, ROI, PDF yaratish">
+<title>Biznes Reja Platformasi | Enterprise v2.0</title>
+<link rel="stylesheet" href="/static/css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+</head>
+<body>
+<div class="bg-pattern"><div class="orb"></div><div class="orb"></div><div class="orb"></div></div>
+
+<div class="loading-overlay" id="loadingOverlay">
+<div class="loading-content">
+  <div class="spinner"></div>
+  <h3 id="loadingTitle">Biznes reja yaratilmoqda...</h3>
+  <p id="loadingText">Ma'lumotlar qayta ishlanmoqda</p>
+  <div class="progress-bar"><div class="fill" id="progressFill"></div></div>
+</div>
+</div>
+
+<div class="app-container">
+<header class="header">
+  <div class="logo"><svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg></div>
+  <h1>Biznes Reja Platformasi</h1>
+  <p>480 ta yo'nalish — Professional biznes reja bir necha daqiqada</p>
+</header>
+
+<div class="stepper" id="stepper">
+  <div class="step-item active" data-step="1"><div class="step-dot">1</div><span class="step-label">Loyiha</span></div>
+  <div class="step-line" id="line1"></div>
+  <div class="step-item" data-step="2"><div class="step-dot">2</div><span class="step-label">Moliya</span></div>
+  <div class="step-line" id="line2"></div>
+  <div class="step-item" data-step="3"><div class="step-dot">3</div><span class="step-label">Kredit</span></div>
+  <div class="step-line" id="line3"></div>
+  <div class="step-item" data-step="4"><div class="step-dot">4</div><span class="step-label">Mahsulot</span></div>
+  <div class="step-line" id="line4"></div>
+  <div class="step-item" data-step="5"><div class="step-dot">5</div><span class="step-label">Xodimlar</span></div>
+  <div class="step-line" id="line5"></div>
+  <div class="step-item" data-step="6"><div class="step-dot">6</div><span class="step-label">Kommunal</span></div>
+  <div class="step-line" id="line6"></div>
+  <div class="step-item" data-step="7"><div class="step-dot">7</div><span class="step-label">Fayllar</span></div>
+  <div class="step-line" id="line7"></div>
+  <div class="step-item" data-step="8"><div class="step-dot">8</div><span class="step-label">Preview</span></div>
+</div>
+
+<div class="alert error" id="alertBox"></div>
+
+<form id="biznesForm" action="/save" method="post" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="faoliyat_turi" id="faoliyat_turi_hidden" value="">
+
+<!-- STEP 1: Loyiha -->
+<div class="form-section active" id="step1"><div class="form-card">
+  <div class="section-header"><div class="section-icon blue">📋</div><div><h2>Loyiha ma'lumotlari</h2><p>Asosiy ma'lumotlarni kiriting</p></div></div>
+  <div class="form-grid">
+    <!-- Loyiha nomi autocomplete -->
+    <div class="input-group full-width">
+      <label>Loyiha nomi qanday? <span class="req">*</span></label>
+      <div class="input-wrapper autocomplete-wrapper">
+        <input type="text" name="loyiha_nomi" id="loyiha_nomi" placeholder="480 ta yo'nalishdan qidiring... Masalan: Mebel ishlab chiqarish" required autocomplete="off">
+        <div class="autocomplete-dropdown" id="autocompleteDropdown"></div>
+      </div>
+      <div class="error-msg">Iltimos, loyiha nomini kiriting</div>
+    </div>
+
+    <div class="input-group full-width"><label>Kompaniya yoki shaxs nomi <span class="req">*</span></label><div class="input-wrapper"><input type="text" name="tashabbuskor" id="tashabbuskor" placeholder="Masalan: Omadli Mebel MCHJ yoki YaTT Rahmatov A.B." required></div><div class="error-msg">Shaxs yoki kompaniya nomi kiritilishi shart</div></div>
+    <div class="input-group full-width"><label>Biznes amalga oshiriladigan manzil</label><div class="input-wrapper"><input type="text" name="manzil" placeholder="Viloyat, tuman, aniq manzil"></div></div>
+
+    <!-- Biznes faoliyat turi — 4 ta karta -->
+    <div class="input-group full-width">
+      <label>Biznes faoliyat turi <span class="req">*</span></label>
+      <div class="faoliyat-cards" id="faoliyatCards">
+        <div class="faoliyat-card" data-type="ishlab_chiqarish" onclick="selectFaoliyat('ishlab_chiqarish')">
+          <div class="faoliyat-icon">🏭</div>
+          <div class="faoliyat-name">Ishlab chiqarish</div>
+          <div class="faoliyat-desc">Mahsulot ishlab chiqarish, zavod va sexlar</div>
+          <div class="faoliyat-check">✓</div>
+        </div>
+        <div class="faoliyat-card" data-type="qishloq_xojaligi" onclick="selectFaoliyat('qishloq_xojaligi')">
+          <div class="faoliyat-icon">🌾</div>
+          <div class="faoliyat-name">Qishloq xo'jaligi</div>
+          <div class="faoliyat-desc">Dehqonchilik, chorvachilik, fermerlik</div>
+          <div class="faoliyat-check">✓</div>
+        </div>
+        <div class="faoliyat-card" data-type="savdo" onclick="selectFaoliyat('savdo')">
+          <div class="faoliyat-icon">🏪</div>
+          <div class="faoliyat-name">Savdo bizneslari</div>
+          <div class="faoliyat-desc">Do'kon, supermarket, chakana va ulgurji savdo</div>
+          <div class="faoliyat-check">✓</div>
+        </div>
+        <div class="faoliyat-card" data-type="xizmat" onclick="selectFaoliyat('xizmat')">
+          <div class="faoliyat-icon">🍽</div>
+          <div class="faoliyat-name">Xizmat ko'rsatish</div>
+          <div class="faoliyat-desc">Servis, ta'mirlash, restoran, salon, IT</div>
+          <div class="faoliyat-check">✓</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-group"><label>Xizmat ko'rsatuvchi bank</label><div class="input-wrapper"><input type="text" name="bank" placeholder="Masalan: Ipoteka bank NBU"></div></div>
+    <div class="input-group"><label>Korxona STIR (INN)</label><div class="input-wrapper"><input type="text" name="stir" placeholder="9 xonali soliq raqami (kiritish ixtiyoriy)"></div></div>
+    <div class="input-group"><label>Rahbarning JSHSHIR (PINFL)</label><div class="input-wrapper"><input type="text" name="jshshir" placeholder="14 xonali shaxsiy kod"></div></div>
+    <div class="input-group"><label>Yuridik maqomi</label><div class="input-wrapper"><input type="text" name="mulk" placeholder="MCHJ, OK, YaTT..."></div></div>
+    <div class="input-group full-width"><label>Rahbarning Ism va Familiyasi (F.I.SH)</label><div class="input-wrapper"><input type="text" name="fio" placeholder="Pasport bo'yicha to'liq kiritilsin"></div></div>
+    <div class="input-group"><label>Pasport seriyasi va raqami</label><div class="input-wrapper"><input type="text" name="pasport" placeholder="Masalan: AA 1234567"></div></div>
+    <div class="input-group"><label>Pasport berilgan sana</label><div class="input-wrapper"><input type="text" name="berilgan_vaqti" placeholder="DD.MM.YYYY formatida"></div></div>
+  </div>
+  <div class="btn-group" style="justify-content:flex-end"><button type="button" class="btn btn-pri" onclick="nextStep(2)">Keyingisi →</button></div>
+</div></div>
+
+<!-- STEP 2: Moliyaviy -->
+<div class="form-section" id="step2"><div class="form-card">
+  <div class="section-header"><div class="section-icon violet">💰</div><div><h2>Moliyaviy ma'lumotlar</h2><p>Loyiha qiymati va mablag' manbalari</p></div></div>
+  <div class="form-grid">
+    <div class="input-group"><label>Loyihaning umumiy qiymati (Umumiy byudjeti)</label><div class="input-wrapper"><input type="number" step="any" name="loyiha_qiymati" id="loyiha_qiymati" placeholder="Barcha mablag'lar yig'indisi" oninput="updateAnalysis()"><span class="sfx">so'm</span></div></div>
+    <div class="input-group"><label>Shundan, o'z sarmoyangiz (Tashabbuskor mablag'i)</label><div class="input-wrapper"><input type="number" step="any" name="oz_mablag" placeholder="Qo'shadigan pulingiz miqdori"><span class="sfx">so'm</span></div></div>
+    <div class="input-group"><label>Bankdan so'ralayotgan kredit qismi</label><div class="input-wrapper"><input type="number" step="any" name="kredit" id="kredit_input" placeholder="Bankdan olinadigan mabalag'" oninput="updateCalc();updateAnalysis()"><span class="sfx">so'm</span></div></div>
+    <div class="input-group"><label>Kredit berilish muddati jami (Eslatma! Makstimal 84 oy)</label><div class="input-wrapper"><input type="number" name="muddat" id="muddat_input" placeholder="Masalan: 60" oninput="updateCalc()"><span class="sfx">oy</span></div></div>
+    <div class="input-group"><label>Imtiyozli davr (Faqat foiz to'lanadigan tanaftus payti)</label><div class="input-wrapper"><input type="number" name="imtiyoz" id="imtiyoz_input" placeholder="Masalan: 12" oninput="updateCalc()"><span class="sfx">oy</span></div></div>
+    <div class="input-group"><label>Bank yillik foiz stavkasi (Kredit foizi)</label><div class="input-wrapper"><input type="number" step="any" name="foiz" id="foiz_input" placeholder="Odatda 14% dan 25% gacha" oninput="updateCalc();updateAnalysis()"><span class="sfx">%</span></div></div>
+  </div>
+  <div class="btn-group">
+    <button type="button" class="btn btn-sec" onclick="prevStep(1)">← Orqaga</button>
+    <button type="button" class="btn btn-pri" onclick="nextStep(3)">Keyingisi →</button>
+  </div>
+</div></div>
+
+<!-- STEP 3: Kredit turi + jadval -->
+<div class="form-section" id="step3"><div class="form-card">
+  <div class="section-header"><div class="section-icon cyan">🏦</div><div><h2>Kredit kalkulyatori</h2><p>Kredit turini tanlang va to'lov jadvalini ko'ring</p></div></div>
+
+  <div class="input-group full-width">
+    <label>Kredit hisoblash turi</label>
+    <div class="radio-group">
+      <div class="radio-option">
+        <input type="radio" id="annuitet" name="kredit_turi" value="annuitet" checked onchange="updateCalc()">
+        <label for="annuitet">📊 Annuitet<br><small style="font-weight:400;opacity:.7">Teng oylik to'lov</small></label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="differentsial" name="kredit_turi" value="differentsial" onchange="updateCalc()">
+        <label for="differentsial">📉 Differentsial<br><small style="font-weight:400;opacity:.7">Kamayuvchi to'lov</small></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="calc-card">
+    <h3>📊 Hisoblash natijalari</h3>
+    <div class="calc-grid">
+      <div class="calc-item hl"><div class="calc-label">Oylik to'lov</div><div class="calc-value" id="calcOylik">0 so'm</div></div>
+      <div class="calc-item"><div class="calc-label">Jami to'lov</div><div class="calc-value" id="calcJami">0 so'm</div></div>
+      <div class="calc-item wr"><div class="calc-label">Foiz to'lovi</div><div class="calc-value" id="calcFoiz">0 so'm</div></div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px">
+    <h3 style="font-size:.9rem;font-weight:600;color:var(--text-2);margin-bottom:8px">📋 To'lov jadvali</h3>
+    <div class="schedule-table-wrap" id="scheduleWrap"></div>
+  </div>
+
+  <div class="btn-group">
+    <button type="button" class="btn btn-sec" onclick="prevStep(2)">← Orqaga</button>
+    <button type="button" class="btn btn-pri" onclick="nextStep(4)">Keyingisi →</button>
+  </div>
+</div></div>
+
+<!-- STEP 4: Mahsulot / Xizmat (DINAMIK) -->
+<div class="form-section" id="step4"><div class="form-card">
+  <div class="section-header"><div class="section-icon green">📦</div><div><h2 id="step4Title">Mahsulot / Xizmat</h2><p id="step4Desc">Tanlangan yo'nalishga qarab ma'lumotlarni kiriting</p></div></div>
+  <div class="form-grid" id="step4Grid">
+    <div class="input-group full-width"><label id="mahsulotLabel">Ishlab chiqariladigan tovar yoki xizmat nomi</label><div class="input-wrapper"><input type="text" name="mahsulot" id="mahsulot_input" placeholder="Masalan: Yong'in xavfsizligi tizimini o'rnatish"></div></div>
+    <div class="input-group"><label id="hajmLabel">Siz kutayotgan bir yillik umumiy sotuv hajmi (Soni)</label><div class="input-wrapper"><input type="number" step="any" name="hajm" id="hajm_input" placeholder="Masalan yilda: 10000 dona" oninput="updateAnalysis()"></div></div>
+    <div class="input-group"><label>Maxsulot yoki xizmatning o'lchov birligini tanlang</label>
+      <div class="input-wrapper">
+        <select name="olchov" id="olchov_select" style="width:100%; padding:12px; border-radius:8px; border:1px solid #d1d5db; background:var(--bg-1); font-size:1rem; outline:none; height:48px; box-sizing:border-box;">
+          <option value="dona">Dona</option>
+          <option value="kg">Kilogramm (kg)</option>
+          <option value="tonna">Tonna</option>
+          <option value="litr">Litr</option>
+          <option value="metr">Metr</option>
+          <option value="kv.m">Kvadrat metr (m²)</option>
+          <option value="soat">Minut / Soat (Xizmatlar)</option>
+          <option value="xizmat">Xizmat (Umumiy limit)</option>
+          <option value="komplekt">Komplekt / To'plam</option>
+          <option value="pors">Porsiya (Umumiy ovqatlanish)</option>
+          <option value="quti">Quti (O'ram)</option>
+        </select>
+      </div>
+    </div>
+    <div class="input-group"><label id="narxLabel">Bitta xizmat yoki mahsulotning narxi</label><div class="input-wrapper"><input type="number" step="any" name="narx" id="narx_input" placeholder="O'rtacha daromad narxda" oninput="updateAnalysis()"><span class="sfx">so'm</span></div></div>
+
+    <!-- Dinamik qo'shimcha fieldlar -->
+    <div id="dynamicFields" class="full-width form-grid"></div>
+  </div>
+
+  <div class="analysis-card">
+    <h3>📈 Moliyaviy ko'rsatkichlar (avtomatik)</h3>
+    <div class="calc-grid cols-4">
+      <div class="calc-item hl"><div class="calc-label">NPV</div><div class="calc-value" id="npvValue">—</div></div>
+      <div class="calc-item"><div class="calc-label">ROI</div><div class="calc-value" id="roiValue">—</div></div>
+      <div class="calc-item wr"><div class="calc-label">O'zini oqlash</div><div class="calc-value" id="paybackValue">—</div></div>
+      <div class="calc-item"><div class="calc-label">Yillik daromad</div><div class="calc-value" id="revenueValue">—</div></div>
+    </div>
+  </div>
+
+  <div class="btn-group">
+    <button type="button" class="btn btn-sec" onclick="prevStep(3)">← Orqaga</button>
+    <button type="button" class="btn btn-pri" onclick="nextStep(5)">Keyingisi →</button>
+  </div>
+</div></div>
+
+<!-- STEP 5: Xodimlar -->
+<div class="form-section" id="step5"><div class="form-card">
+  <div class="section-header"><div class="section-icon orange">👥</div><div><h2>Xodimlar</h2><p>Shtat jadvali va ish haqi</p></div></div>
+  <div class="form-grid">
+    <div class="input-group"><label>Ma'murlar (Boshqaruv, Direktor va h.k) qancha kishi</label><div class="input-wrapper"><input type="number" name="direktor" placeholder="Masalan: 1 yoki 2"><span class="sfx">kishi</span></div></div>
+    <div class="input-group"><label>Asosiy ishchi mutaxassislar asosan necha kishi bo'ladi</label><div class="input-wrapper"><input type="number" name="xodim" placeholder="Masalan: 5 ta doimiy xodim"><span class="sfx">kishi</span></div></div>
+    <div class="input-group"><label>Maxsus / Qo'shimcha yangi olinadigan xodimlar soni</label><div class="input-wrapper"><input type="number" name="yangi_xodim" placeholder="Yangi ish ochilsa"><span class="sfx">kishi</span></div></div>
+    <div class="input-group"><label>Har bir Ma'mur kishiga qilinadigan oylik harajat</label><div class="input-wrapper"><input type="number" step="any" name="rahbar_oylik" placeholder="Oylik miqdori"><span class="sfx">so'm</span></div></div>
+    <div class="input-group"><label>Har bir Asosiy ishchi xodimga qilinadigan oylik xarajat</label><div class="input-wrapper"><input type="number" step="any" name="ishchi_oylik" placeholder="Oylik miqdori"><span class="sfx">so'm</span></div></div>
+    <div class="input-group"><label>Har bir Qo'shimcha/Yangi olinadigan xodimga oylik</label><div class="input-wrapper"><input type="number" step="any" name="yangi_ishchi_oylik" placeholder="Oylik miqdori"><span class="sfx">so'm</span></div></div>
+  </div>
+  <div class="btn-group">
+    <button type="button" class="btn btn-sec" onclick="prevStep(4)">← Orqaga</button>
+    <button type="button" class="btn btn-pri" onclick="nextStep(6)">Keyingisi →</button>
+  </div>
+</div></div>
+
+<!-- STEP 6: Kommunal -->
+<div class="form-section" id="step6"><div class="form-card">
+  <div class="section-header"><div class="section-icon red">⚡</div><div><h2>Kommunal xarajatlar</h2><p>Oylik kommunal to'lovlar</p></div></div>
+  <div class="form-grid">
+    <div class="input-group"><label>Elektr energiyasi hajmi (Oylik kilovat kVt deb o'rtacha eng oxirgi ko'rsatkich kiritiladi)</label><div class="input-wrapper"><input type="number" step="any" name="elektr" placeholder="Masalan bir oyda: 1500"><span class="sfx">kVt</span></div></div>
+    <div class="input-group"><label>Gaz sarfi ko'rsatkichi hajmi (Bir oyda eng ko'pi qancha m³ Gaz ketishi kutilmoqda)</label><div class="input-wrapper"><input type="number" step="any" name="gaz" placeholder="Masalan: 500"><span class="sfx">m³</span></div></div>
+    <div class="input-group"><label>Suv sarfi hajmi (Bir oyda ishlab chiqarish yoki ofisda necha m³ suv ketadi)</label><div class="input-wrapper"><input type="number" step="any" name="suv" placeholder="Masalan: 20"><span class="sfx">m³</span></div></div>
+    <div class="input-group"><label>Oqava (Kanalizatsiya) hajmi (Odatda toza suvdan proporsiya bo'lib hisoblanadi)</label><div class="input-wrapper"><input type="number" step="any" name="oqava" placeholder="Masalan: 20"><span class="sfx">m³</span></div></div>
+  </div>
+  <div class="btn-group">
+    <button type="button" class="btn btn-sec" onclick="prevStep(5)">← Orqaga</button>
+    <button type="button" class="btn btn-pri" onclick="nextStep(7)">Keyingisi →</button>
+  </div>
+</div></div>
+
+<!-- STEP 7: Fayllar -->
+<div class="form-section" id="step7"><div class="form-card">
+  <div class="section-header"><div class="section-icon pink">📎</div><div><h2>Fayllar va medialar</h2><p>Rasmlar, videolar, hujjatlar yuklang</p></div></div>
+  <div class="form-grid">
+    <div class="input-group">
+      <label>Biznes rasmi</label>
+      <div class="upload-area" id="uploadBizImg">
+        <input type="file" name="business_image" id="business_image" accept="image/*">
+        <div class="upload-icon">🖼️</div>
+        <div class="upload-text">Rasm yuklash</div>
+        <div class="upload-hint">JPG, PNG, WebP (max 10MB)</div>
+      </div>
+    </div>
+    <div class="input-group">
+      <label>Mahsulot rasmi</label>
+      <div class="upload-area" id="uploadProduct">
+        <input type="file" name="product_photo" id="product_photo" accept="image/*">
+        <div class="upload-icon">📦</div>
+        <div class="upload-text">Rasm yuklash</div>
+        <div class="upload-hint">JPG, PNG, WebP (max 10MB)</div>
+      </div>
+    </div>
+    <div class="input-group full-width">
+      <label>Qo'shimcha hujjat (ixtiyoriy)</label>
+      <div class="input-wrapper"><input type="file" name="extra_doc" accept=".pdf,.doc,.docx" style="padding:8px"></div>
+    </div>
+  </div>
+  <div class="btn-group">
+    <button type="button" class="btn btn-sec" onclick="prevStep(6)">← Orqaga</button>
+    <button type="button" class="btn btn-pri" onclick="generatePreview()">📋 Biznes reja ko'rish (Preview) →</button>
+  </div>
+</div></div>
+
+<!-- STEP 8: Preview + To'lov -->
+<div class="form-section" id="step8"><div class="form-card">
+  <div class="section-header"><div class="section-icon violet">📄</div><div><h2>Biznes reja — Preview</h2><p>Tahrirlang va yuklab oling</p></div></div>
+
+  <!-- Preview Content -->
+  <div id="previewContent" class="preview-container">
+    <div class="preview-loading">
+      <div class="spinner" style="width:30px;height:30px;margin:0 auto 10px"></div>
+      <p>Preview tayyorlanmoqda...</p>
+    </div>
+  </div>
+
+  <!-- To'lov -->
+  <div class="payment-section" id="paymentSection" style="display:none">
+    <div class="payment-header">
+      <h3>💳 Biznes rejani yuklab olish</h3>
+      <div class="payment-price">80 000 so'm</div>
+    </div>
+    <div class="payment-methods" id="paymentMethods">
+      <div class="payment-card" data-method="click" onclick="selectPayment('click')">
+        <div class="payment-icon" style="background:#00b4ff">💳</div>
+        <div class="payment-name">Click</div>
+        <div class="payment-desc">Click orqali to'lash</div>
+      </div>
+      <div class="payment-card" data-method="payme" onclick="selectPayment('payme')">
+        <div class="payment-icon" style="background:#00cccc">📱</div>
+        <div class="payment-name">Payme</div>
+        <div class="payment-desc">Payme orqali to'lash</div>
+      </div>
+      <div class="payment-card" data-method="card" onclick="selectPayment('card')">
+        <div class="payment-icon" style="background:#6366f1">💳</div>
+        <div class="payment-name">Karta orqali</div>
+        <div class="payment-desc">Bevosita karta raqami</div>
+      </div>
+      <div class="payment-card active" data-method="demo" onclick="selectPayment('demo')">
+        <div class="payment-icon" style="background:#10b981">🧪</div>
+        <div class="payment-name">Demo (Test)</div>
+        <div class="payment-desc">Test rejimda bepul</div>
+      </div>
+    </div>
+    <button type="button" class="btn btn-suc" id="downloadBtn" onclick="processPaymentAndDownload()">
+      📥 To'lash va yuklab olish — 80 000 so'm
+    </button>
+  </div>
+
+  <div class="btn-group">
+    <button type="button" class="btn btn-sec" onclick="prevStep(7)">← Orqaga</button>
+  </div>
+</div></div>
+
+</form>
+<footer class="footer"><p>© 2026 Biznes Reja Platformasi — Enterprise Edition v2.0</p></footer>
+</div>
+<script src="/static/js/app.js"></script>
+</body>
+</html>
