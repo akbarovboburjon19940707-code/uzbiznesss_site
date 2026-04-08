@@ -178,6 +178,7 @@ class FinancialEngine:
         self.t_fin_plan = self._calc_fin_plan()
         self.t_depreciation = self._calc_depreciation()
         self.t_labour = self._calc_labour()
+        self.t_kommunal = self._calc_kommunal()
         self.t_prod_plan = self._calc_prod_plan()
         self.t_loans = self._calc_loans()
         self.t_taxes = self._calc_taxes()
@@ -982,13 +983,38 @@ class FinancialEngine:
             "data": self.indicators,
         }
 
-    # ── Helpers ───────────────────────────────────────────
     def _yillik_kommunal(self) -> float:
         elektr = self.elektr * 900 * 12
         gaz = self.gaz * 1500 * 12
         suv = self.suv * 3000 * 12
         oqava = self.oqava * 2000 * 12
         return elektr + gaz + suv + oqava
+
+    # ─────────────────────────────────────────────────────
+    # 13. KOMMUNIKATSIYA VA INFRATUZILMA
+    # ─────────────────────────────────────────────────────
+    def _calc_kommunal(self) -> Dict:
+        elektr = self.elektr * 900
+        gaz = self.gaz * 1500
+        suv = self.suv * 3000
+        oqava = self.oqava * 2000
+        jami_oylik = elektr + gaz + suv + oqava
+        
+        rows = [
+            ["Elektr energiyasi", "kVT", self.elektr, 900, elektr, elektr * 12],
+            ["Tabiiy gaz", "m3", self.gaz, 1500, gaz, gaz * 12],
+            ["Ichimlik suvi", "m3", self.suv, 3000, suv, suv * 12],
+            ["Oqava suv (Kanalizatsiya)", "m3", self.oqava, 2000, oqava, oqava * 12],
+            ["JAMI", "", "", "", jami_oylik, jami_oylik * 12]
+        ]
+        
+        return {
+            "title": "KOMMUNIKATSIYA VA INFRATUZILMA XARAJATLARI",
+            "ilova": "KOMMUNAL",
+            "headers": ["Xarajat turi", "O'lchov birligi", "Miqdori (oylik)", "Tarif (so'm)", "Oylik xarajat (so'm)", "Yillik xarajat (so'm)"],
+            "rows": rows,
+            "data": {},
+        }
 
     def get_all_tables(self) -> List[Dict]:
         """Barcha jadvallarni tartibda qaytaradi."""
@@ -998,6 +1024,7 @@ class FinancialEngine:
             self.t_share_costs,
             self.t_depreciation,
             self.t_labour,
+            self.t_kommunal,
             self.t_prod_plan,
             self.t_loans,
             self.t_taxes,

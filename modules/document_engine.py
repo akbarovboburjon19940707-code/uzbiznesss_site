@@ -57,24 +57,106 @@ def create_word_document(template_path: str, output_path: str, context: dict = N
                             for p in cell.paragraphs:
                                 _replace_in_paragraph(p, data, images)
 
-    # Remove old static tables
+    # Replace inline tables dynamically
     tables_to_delete = []
+    
+    # helper func
+    def insert_table_after(old_table_element, table_data, doc_ref):
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.shared import Pt
+        
+        headers = table_data.get("headers", [])
+        data = table_data.get("rows", [])
+        if not headers: return
+        
+        new_table = doc_ref.add_table(rows=1, cols=len(headers))
+        new_table.style = 'Table Grid'
+        
+        hdr_cells = new_table.rows[0].cells
+        for i, h in enumerate(headers):
+            hdr_cells[i].text = str(h)
+            for r in hdr_cells[i].paragraphs[0].runs:
+                r.bold = True
+                r.font.name = 'Times New Roman'
+                r.font.size = Pt(11)
+            hdr_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+        for row_data in data:
+            row_cells = new_table.add_row().cells
+            for i, val in enumerate(row_data):
+                if isinstance(val, (int, float)):
+                    if isinstance(val, bool): text_val = str(val)
+                    elif isinstance(val, float) and 0 < abs(val) < 100: text_val = f"{val:.2f}" if val % 1 != 0 else str(int(val))
+                    else: text_val = f"{val:,.0f}".replace(",", " ")
+                else: text_val = str(val)
+                row_cells[i].text = text_val
+                for r in row_cells[i].paragraphs[0].runs:
+                    r.font.name = 'Times New Roman'
+                    r.font.size = Pt(11)
+                row_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER if i > 1 else WD_ALIGN_PARAGRAPH.LEFT
+                
+        # move element
+        parent = old_table_element.getparent()
+        parent.insert(parent.index(old_table_element), new_table._element)
+    
+    # First, collect map from keywords to specific tables
+    table_map = {}
+    if model and hasattr(model, 'get_all_tables'):
+        all_tables = model.get_all_tables()
+        for tbl in all_tables:
+            if tbl["ilova"] == "1-ILOVA": table_map["loyiha_qiymati"] = tbl
+            elif tbl["ilova"] == "5-ILOVA": table_map["shtat_jadvali"] = tbl
+            elif tbl["ilova"] == "KOMMUNAL": table_map["kommunikatsiya"] = tbl
+            elif tbl["ilova"] == "6-ILOVA": table_map["daromad_sxemasi"] = tbl
+
     for table in doc.tables:
+        matched_key = None
         for row in table.rows:
             for cell in row.cells:
                 text = cell.text.lower()
-                if any(x in text for x in ['asosiy vositalarni sotib olish (jihozlar)', 'shtat jadvali', 'ish haqi xarajatlari', 'sotish rejasi', "quvvatlarni ishga", "foydalanish xarajatlari"]):
-                    if table not in tables_to_delete:
-                        tables_to_delete.append(table)
-                    
-    for t in tables_to_delete:
+                if any(x in text for x in ['boshqa kommunal']):
+                    matched_key = "kommunikatsiya"
+                elif any(x in text for x in ['sotish daromadlari', 'daromad_va_foyda', 'daromad sxemasi']):
+                    matched_key = "daromad_sxemasi"
+                elif any(x in text for x in ['asosiy vositalarni sotib olish (jihozlar)', 'shtat jadvali', 'ish haqi xarajatlari', 'loyiha qiymati']):
+                    if any(x in text for x in ['shtat jadvali', 'ish haqi xarajatlari']):
+                        matched_key = "shtat_jadvali"
+                    else:
+                        matched_key = "loyiha_qiymati"
+                elif any(x in text for x in ['sotish rejasi', 'quvvatlarni ishga', 'foydalanish xarajatlari']):
+                    # we just delete these old statics if they aren't matching ones we replace inline
+                    matched_key = "DELETE"
+                if matched_key: break
+            if matched_key: break
+            
+        if matched_key:
+            if table not in tables_to_delete:
+                tables_to_delete.append((table, matched_key))
+                
+    for t_tuple in tables_to_delete:
+        t, key = t_tuple
         parent = t._element.getparent()
         if parent is not None:
+            if key in table_map:
+                insert_table_after(t._element, table_map[key], doc)
             parent.remove(t._element)
 
     # 2. Add Dynamic Tables (Ilovalar)
     if model:
         add_financial_appendices(doc, model)
+
+    # 3. Final raw sweep for SDTs and headers/footers
+    raw_elements = [doc._element]
+    for section in doc.sections:
+        if section.header: raw_elements.append(section.header._element)
+        if section.footer: raw_elements.append(section.footer._element)
+            
+    for el in raw_elements:
+        for t in el.xpath('.//w:t'):
+            if not t.text or '{{' not in t.text: continue
+            for k, v in data.items():
+                if k in t.text:
+                    t.text = t.text.replace(k, str(v))
 
     doc.save(output_path)
     return output_path
@@ -153,31 +235,50 @@ def _create_styled_table(doc, title, headers, data, ilova_num):
 
 
 def _replace_in_paragraph(paragraph, data: dict, images: dict = None):
-    text = paragraph.text
-    if "{{" not in text:
-        return
-        
-    for key, value in data.items():
-        if key in text:
-            text = text.replace(key, value)
-            
-    if paragraph.text != text:
-        paragraph.text = text
-        for run in paragraph.runs:
-            run.font.name = 'Times New Roman'
-            run.font.size = Pt(12)
-            
+    # 1. Image Replacement
     if images:
         for img_key, img_path in images.items():
             if img_key in ['business_image', 'product_photo']:
                 placeholder = "{{" + img_key + "}}"
                 if placeholder in paragraph.text:
-                    paragraph.text = paragraph.text.replace(placeholder, "")
-                    run = paragraph.add_run()
-                    try:
-                        run.add_picture(img_path, width=docx.shared.Cm(14), height=docx.shared.Cm(8))
-                    except Exception as e:
-                        logger.warning(f"Rasmni qo'shib bo'lmadi {img_key}: {e}")
+                    for run in paragraph.runs:
+                        if placeholder in run.text:
+                            run.text = run.text.replace(placeholder, "")
+                            try:
+                                run.add_picture(img_path, width=docx.shared.Cm(14), height=docx.shared.Cm(8))
+                            except Exception as e:
+                                logger.warning(f"Rasmni qo'shib bo'lmadi {img_key}: {e}")
+
+    # 2. Text Replacement
+    for key, value in data.items():
+        v = str(value)
+        # Attempt safe replacement (preserves formatting perfectly)
+        for run in paragraph.runs:
+            if key in run.text:
+                run.text = run.text.replace(key, v)
+                
+        # If it's fragmented across runs, fallback to flattening
+        if key in paragraph.text:
+            text = paragraph.text.replace(key, v)
+            if text != paragraph.text:
+                first_run = None
+                for r in paragraph.runs:
+                    if r.text.strip():
+                        first_run = r
+                        break
+                if first_run:
+                    f_name = first_run.font.name
+                    f_size = first_run.font.size
+                    bold = first_run.bold
+                    italic = first_run.italic
+                    paragraph.text = text
+                    if paragraph.runs:
+                        paragraph.runs[0].font.name = f_name or "Times New Roman"
+                        if f_size: paragraph.runs[0].font.size = f_size
+                        if bold is not None: paragraph.runs[0].bold = bold
+                        if italic is not None: paragraph.runs[0].italic = italic
+                else:
+                    paragraph.text = text
 
 
 def convert_to_pdf(input_path: str, output_path: str) -> str:

@@ -15,12 +15,12 @@ from .financial_analysis import full_financial_analysis
 
 
 # Stillar
-HEADER_FONT = Font(name='Arial', bold=True, size=10, color='FFFFFF')
-HEADER_FILL = PatternFill(start_color='2C3E50', end_color='2C3E50', fill_type='solid')
-DATA_FONT = Font(name='Arial', size=9)
-BOLD_FONT = Font(name='Arial', bold=True, size=9)
-TOTAL_FILL = PatternFill(start_color='D5F5E3', end_color='D5F5E3', fill_type='solid')
-IMTIYOZ_FILL = PatternFill(start_color='FFF3CD', end_color='FFF3CD', fill_type='solid')
+HEADER_FONT = Font(name='Times New Roman', bold=True, size=11, color='000000')
+HEADER_FILL = PatternFill(start_color='EAEAEA', end_color='EAEAEA', fill_type='solid')
+DATA_FONT = Font(name='Times New Roman', size=11)
+BOLD_FONT = Font(name='Times New Roman', bold=True, size=11)
+TOTAL_FILL = PatternFill(start_color='D9EAD3', end_color='D9EAD3', fill_type='solid')
+IMTIYOZ_FILL = PatternFill(start_color='FFF2CC', end_color='FFF2CC', fill_type='solid')
 THIN_BORDER = Border(
     left=Side(style='thin'), right=Side(style='thin'),
     top=Side(style='thin'), bottom=Side(style='thin')
@@ -44,7 +44,7 @@ def write_kredit_jadval(ws, start_row: int, kredit: KreditNatija) -> int:
     ws.merge_cells(start_row=start_row, start_column=1, end_row=start_row, end_column=6)
     title_cell = ws.cell(row=start_row, column=1,
                          value=f"KREDIT TO'LOV JADVALI ({kredit.turi.upper()})")
-    apply_cell_style(title_cell, Font(name='Arial', bold=True, size=12, color='2C3E50'),
+    apply_cell_style(title_cell, Font(name='Times New Roman', bold=True, size=14, color='000000'),
                      alignment=Alignment(horizontal='center'))
 
     row = start_row + 1
@@ -110,7 +110,7 @@ def write_financial_analysis(ws, start_row: int, analysis: dict) -> int:
 
     ws.merge_cells(start_row=start_row, start_column=1, end_row=start_row, end_column=5)
     title = ws.cell(row=start_row, column=1, value="MOLIYAVIY TAHLIL NATIJALARI")
-    apply_cell_style(title, Font(name='Arial', bold=True, size=12, color='2C3E50'),
+    apply_cell_style(title, Font(name='Times New Roman', bold=True, size=14, color='000000'),
                      alignment=Alignment(horizontal='center'))
     row = start_row + 2
 
@@ -140,9 +140,9 @@ def write_financial_analysis(ws, start_row: int, analysis: dict) -> int:
     # Xulosa
     xulosa = analysis["xulosa"]
     status = "✅ SAMARALI" if xulosa["loyiha_samarali"] else "⚠️ SAMARASIZ"
-    ws.cell(row=row, column=1, value="LOYIHA BAHOSI:").font = Font(name='Arial', bold=True, size=11)
+    ws.cell(row=row, column=1, value="LOYIHA BAHOSI:").font = Font(name='Times New Roman', bold=True, size=12)
     ws.cell(row=row, column=2, value=status).font = Font(
-        name='Arial', bold=True, size=11,
+        name='Times New Roman', bold=True, size=12,
         color='27AE60' if xulosa["loyiha_samarali"] else 'E74C3C'
     )
     row += 2
