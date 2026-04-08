@@ -113,18 +113,16 @@ def create_word_document(template_path: str, output_path: str, context: dict = N
         matched_key = None
         for row in table.rows:
             for cell in row.cells:
-                text = cell.text.lower()
-                if any(x in text for x in ['boshqa kommunal']):
+                text = cell.text.lower().strip()
+                if any(x in text for x in ['boshqa kommunal', 'kommunikatsiya', 'infratuzilma']):
                     matched_key = "kommunikatsiya"
-                elif any(x in text for x in ['sotish daromadlari', 'daromad_va_foyda', 'daromad sxemasi']):
+                elif any(x in text for x in ['sotish daromadlari', 'daromad_va_foyda', 'daromad sxemasi', 'tushumlar']):
                     matched_key = "daromad_sxemasi"
-                elif any(x in text for x in ['asosiy vositalarni sotib olish (jihozlar)', 'shtat jadvali', 'ish haqi xarajatlari', 'loyiha qiymati']):
-                    if any(x in text for x in ['shtat jadvali', 'ish haqi xarajatlari']):
-                        matched_key = "shtat_jadvali"
-                    else:
-                        matched_key = "loyiha_qiymati"
-                elif any(x in text for x in ['sotish rejasi', 'quvvatlarni ishga', 'foydalanish xarajatlari']):
-                    # we just delete these old statics if they aren't matching ones we replace inline
+                elif any(x in text for x in ['asosiy vositalarni', 'jihozlar', 'uskunalar sotib olish', 'investitsiya xarajatlari']):
+                    matched_key = "loyiha_qiymati"
+                elif any(x in text for x in ['shtat jadvali', 'ish haqi', 'xodimlar soni', 'mehnat xarajatlari']):
+                    matched_key = "shtat_jadvali"
+                elif any(x in text for x in ['sotish rejasi', 'quvvatlarni', 'foydalanish xarajatlari', 'umumiy xarajatlar']):
                     matched_key = "DELETE"
                 if matched_key: break
             if matched_key: break
@@ -157,6 +155,24 @@ def create_word_document(template_path: str, output_path: str, context: dict = N
             for k, v in data.items():
                 if k in t.text:
                     t.text = t.text.replace(k, str(v))
+
+    # 4. Add Confirmation Signature if checked
+    if context and context.get("tasdiqlash"):
+        doc.add_page_break()
+        doc.add_paragraph("\n\n")
+        p_sign = doc.add_paragraph()
+        p_sign.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        run_sign = p_sign.add_run(f"Tasdiqlayman: __________________ / {context.get('fio', '')} /")
+        run_sign.bold = True
+        run_sign.font.size = Pt(11)
+        run_sign.font.name = 'Times New Roman'
+        
+        p_date = doc.add_paragraph()
+        p_date.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        from datetime import datetime
+        run_date = p_date.add_run(f"Sana: {datetime.now().strftime('%d.%m.%Y')}")
+        run_date.font.size = Pt(10)
+        run_date.font.name = 'Times New Roman'
 
     doc.save(output_path)
     return output_path
@@ -238,47 +254,35 @@ def _replace_in_paragraph(paragraph, data: dict, images: dict = None):
     # 1. Image Replacement
     if images:
         for img_key, img_path in images.items():
-            if img_key in ['business_image', 'product_photo']:
-                placeholder = "{{" + img_key + "}}"
-                if placeholder in paragraph.text:
-                    for run in paragraph.runs:
-                        if placeholder in run.text:
-                            run.text = run.text.replace(placeholder, "")
+            placeholder = "{{" + img_key + "}}"
+            if placeholder in paragraph.text:
+                for run in paragraph.runs:
+                    if img_key in run.text or "{{" in run.text:
+                        run.text = run.text.replace(placeholder, "")
+                        if placeholder not in paragraph.text: # Tag fully removed or replaced
                             try:
-                                run.add_picture(img_path, width=docx.shared.Cm(14), height=docx.shared.Cm(8))
-                            except Exception as e:
-                                logger.warning(f"Rasmni qo'shib bo'lmadi {img_key}: {e}")
+                                run.add_picture(img_path, width=Cm(15), height=Cm(9))
+                                break
+                            except: pass
 
     # 2. Text Replacement
-    for key, value in data.items():
-        v = str(value)
-        # Attempt safe replacement (preserves formatting perfectly)
-        for run in paragraph.runs:
-            if key in run.text:
-                run.text = run.text.replace(key, v)
-                
-        # If it's fragmented across runs, fallback to flattening
+    for key, val in data.items():
+        if key not in paragraph.text: continue
+        for r in paragraph.runs:
+            if key in r.text: r.text = r.text.replace(key, str(val))
         if key in paragraph.text:
-            text = paragraph.text.replace(key, v)
-            if text != paragraph.text:
-                first_run = None
-                for r in paragraph.runs:
-                    if r.text.strip():
-                        first_run = r
-                        break
-                if first_run:
-                    f_name = first_run.font.name
-                    f_size = first_run.font.size
-                    bold = first_run.bold
-                    italic = first_run.italic
-                    paragraph.text = text
-                    if paragraph.runs:
-                        paragraph.runs[0].font.name = f_name or "Times New Roman"
-                        if f_size: paragraph.runs[0].font.size = f_size
-                        if bold is not None: paragraph.runs[0].bold = bold
-                        if italic is not None: paragraph.runs[0].italic = italic
-                else:
-                    paragraph.text = text
+            text = paragraph.text.replace(key, str(val))
+            if paragraph.runs:
+                r0 = paragraph.runs[0]
+                fn, fs, b, it = r0.font.name, r0.font.size, r0.bold, r0.italic
+                paragraph.text = text
+                if paragraph.runs:
+                    paragraph.runs[0].font.name = fn or "Times New Roman"
+                    if fs: paragraph.runs[0].font.size = fs
+                    paragraph.runs[0].bold = b
+                    paragraph.runs[0].italic = it
+            else:
+                paragraph.text = text
 
 
 def convert_to_pdf(input_path: str, output_path: str) -> str:

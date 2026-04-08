@@ -9,6 +9,7 @@ import shutil
 import time
 import logging
 import threading
+from werkzeug.utils import secure_filename
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ def save_upload(file, session_dir: str) -> str:
     if not allowed_file(file.filename):
         return None
 
-    safe_name = f"{uuid.uuid4().hex[:8]}_{file.filename}"
+    safe_name = f"{uuid.uuid4().hex[:8]}_{secure_filename(file.filename)}"
     upload_path = os.path.join(session_dir, "uploads", safe_name)
     file.save(upload_path)
     return upload_path

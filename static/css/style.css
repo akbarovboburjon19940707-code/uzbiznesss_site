@@ -64,14 +64,7 @@ h1, h2, h3, .font-heading {
     radial-gradient(circle at 50% 50%, rgba(15, 18, 37, 1) 0%, rgba(7, 9, 17, 1) 100%);
 }
 
-.bg-mesh::after {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; width: 100%; height: 100%;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  opacity: 0.05;
-  pointer-events: none;
-}
+
 
 /* ══════════════════════════════════════════════════════════
    LAYOUT: DASHBOARD SPLIT
@@ -474,3 +467,76 @@ h1, h2, h3, .font-heading {
   .action-group { flex-direction: column-reverse; }
   .btn-base { width: 100%; }
 }
+
+/* ══════════════════════════════════════════════════════════
+   TABLE PREVIEW: PROFESSIONAL STYLE
+   ══════════════════════════════════════════════════════════ */
+.preview-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--r-md);
+  border: 1px solid var(--glass-border);
+  background: rgba(0, 0, 0, 0.2);
+  margin-top: 10px;
+}
+
+.preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  color: #e2e8f0;
+}
+
+.preview-table th {
+  background: var(--bg-deep);
+  color: var(--accent);
+  text-align: left;
+  padding: 12px 15px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--glass-border);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+}
+
+.preview-table td {
+  padding: 10px 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.preview-table tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.preview-table tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.preview-table td:last-child, 
+.preview-table th:last-child {
+  text-align: right;
+}
+
+.preview-table-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  margin-top: 30px;
+}
+
+.preview-table-title .badge {
+  background: var(--primary);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.preview-table-title h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+}
+

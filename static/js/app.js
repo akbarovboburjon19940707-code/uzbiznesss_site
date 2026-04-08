@@ -228,7 +228,7 @@ function updateStep4UI(type) {
         'mahsulotLabel': ft.mahsulot_label,
         'hajmLabel': ft.hajm_label,
         'narxLabel': ft.narx_label,
-        'step4Title': ft.faoliyat_nomi + " Ma'lumotlari",
+        'step4Title': ft.nomi + " Ma'lumotlari",
         'step4Desc': ft.tavsif
     };
 
@@ -260,7 +260,18 @@ function updateCalc() {
         const foiz = v('foiz_input');
         const muddat = parseInt(document.getElementById('muddat_input')?.value) || 1;
         const imtiyoz = parseInt(document.getElementById('imtiyoz_input')?.value) || 0;
-        const turi = document.querySelector('input[name="kredit_turi"]:checked')?.value || 'annuitet';
+        
+        const radioCards = document.querySelectorAll('input[name="kredit_turi"]');
+        let turi = 'annuitet';
+        radioCards.forEach(r => {
+            const card = r.closest('.type-card');
+            if (r.checked) {
+                turi = r.value;
+                if (card) card.classList.add('active');
+            } else {
+                if (card) card.classList.remove('active');
+            }
+        });
 
         if (kredit <= 0 || muddat <= 0) { renderQuickSchedule(null); return; }
 
@@ -392,33 +403,40 @@ async function generatePreview() {
 function renderPreviewUI(data, container) {
     const ctx = data.context;
     let html = `
-        <div class="glass-card" style="margin-bottom:20px; background:rgba(255,255,255,0.02)">
+        <div class="glass-card" style="margin-bottom:30px; background:rgba(255,255,255,0.02)">
             <h3 style="color:var(--accent); font-size:1.1rem; margin-bottom:15px">📋 Loyiha Pasporti</h3>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; font-size:0.85rem">
-                <div><strong>Loyiha:</strong> ${ctx.loyiha_nomi}</div>
-                <div><strong>Tashabbuskor:</strong> ${ctx.tashabbuskor}</div>
-                <div><strong>Loyiha Qiymati:</strong> ${fmt(ctx.loyiha_qiymati)}</div>
-                <div><strong>NPV (Sof foyda):</strong> ${fmt(data.indicators.npv)}</div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; font-size:0.85rem">
+                <div><strong style="color:var(--primary)">Loyiha:</strong> ${ctx.loyiha_nomi}</div>
+                <div><strong style="color:var(--primary)">Tashabbuskor:</strong> ${ctx.tashabbuskor}</div>
+                <div><strong style="color:var(--primary)">Loyiha Qiymati:</strong> ${fmt(ctx.loyiha_qiymati)}</div>
+                <div><strong style="color:var(--primary)">O'z mablag'i:</strong> ${fmt(ctx.oz_mablag)}</div>
+                <div><strong style="color:var(--primary)">Kredit:</strong> ${fmt(ctx.kredit)}</div>
+                <div><strong style="color:var(--primary)">NPV (Sof foyda):</strong> ${fmt(data.indicators.npv)}</div>
             </div>
         </div>
     `;
 
-    // Dynamic Tables Preview (First two only for cleanliness)
-    data.tables.slice(0, 3).forEach(tbl => {
+    // Professional Tables Preview for ALL tables
+    data.tables.forEach(tbl => {
         html += `
-            <div style="margin-bottom:20px">
-                <h4 style="font-size:0.9rem; margin-bottom:8px; opacity:0.8">${tbl.ilova} — ${tbl.title}</h4>
-                <div class="preview-table-wrap">
-                    <table class="preview-table">
-                        <thead><tr>${tbl.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-                        <tbody>${tbl.rows.slice(0, 5).map(row => `<tr>${row.map(c => `<td>${typeof c === 'number' ? fmt(c) : c}</td>`).join('')}</tr>`).join('')}</tbody>
-                    </table>
-                </div>
+            <div class="preview-table-title">
+                <span class="badge">${tbl.ilova}</span>
+                <h4>${tbl.title}</h4>
+            </div>
+            <div class="preview-table-wrap">
+                <table class="preview-table">
+                    <thead><tr>${tbl.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+                    <tbody>${tbl.rows.slice(0, 15).map(row => `<tr>${row.map(c => `<td>${typeof c === 'number' ? fmt(c) : c}</td>`).join('')}</tr>`).join('')}</tbody>
+                </table>
             </div>
         `;
     });
 
-    html += `<p style="text-align:center; font-size:0.8rem; opacity:0.5">... va yana 10 dan ortiq professional jadvallar yuklab olinganda taqdim etiladi.</p>`;
+    html += `
+        <div style="text-align:center; padding:30px; margin-top:20px; border-top:1px solid var(--glass-border)">
+            <p style="font-size:0.9rem; color:#94a3b8">Barcha 12+ professional moliyaviy jadvallar yuklab olinganda to'liq holatda (har bir oy/yil kesimida) taqdim etiladi.</p>
+        </div>
+    `;
     container.innerHTML = html;
 }
 

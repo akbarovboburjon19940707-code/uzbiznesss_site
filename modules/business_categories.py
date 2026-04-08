@@ -35,7 +35,6 @@ FAOLIYAT_TURLARI = {
         "qoshimcha_fieldlar": [
             {"name": "xomashyo_narx", "label": "Bitta mahsulot uchun xomashyo narxi", "suffix": "so'm", "placeholder": "Masalan: 50000"},
             {"name": "uskuna_qiymati", "label": "Uskunalar umumiy qiymati", "suffix": "so'm", "placeholder": "Masalan: 100000000"},
-            {"name": "energiya_oylik", "label": "Oylik energiya xarajati", "suffix": "so'm", "placeholder": "Masalan: 5000000"},
         ],
     },
     "qishloq_xojaligi": {
@@ -119,7 +118,6 @@ FAOLIYAT_TURLARI = {
         "qoshimcha_fieldlar": [
             {"name": "uskuna_ijarasi", "label": "Uskunalar qiymati / ijarasi", "suffix": "so'm", "placeholder": "Masalan: 20000000"},
             {"name": "joy_ijarasi", "label": "Joy ijarasi (oylik)", "suffix": "so'm", "placeholder": "Masalan: 8000000"},
-            {"name": "kommunal_oylik", "label": "Kommunal to'lovlar (oylik)", "suffix": "so'm", "placeholder": "Masalan: 3000000"},
         ],
     },
 }
