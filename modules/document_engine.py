@@ -51,6 +51,26 @@ def create_word_document(template_path: str, output_path: str, context: dict = N
             if head_foot:
                 for p in head_foot.paragraphs:
                     _replace_in_paragraph(p, data, images)
+                for t in head_foot.tables:
+                    for row in t.rows:
+                        for cell in row.cells:
+                            for p in cell.paragraphs:
+                                _replace_in_paragraph(p, data, images)
+
+    # Remove old static tables
+    tables_to_delete = []
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                text = cell.text.lower()
+                if any(x in text for x in ['asosiy vositalarni sotib olish (jihozlar)', 'shtat jadvali', 'ish haqi xarajatlari', 'sotish rejasi', "quvvatlarni ishga", "foydalanish xarajatlari"]):
+                    if table not in tables_to_delete:
+                        tables_to_delete.append(table)
+                    
+    for t in tables_to_delete:
+        parent = t._element.getparent()
+        if parent is not None:
+            parent.remove(t._element)
 
     # 2. Add Dynamic Tables (Ilovalar)
     if model:
@@ -103,7 +123,10 @@ def _create_styled_table(doc, title, headers, data, ilova_num):
         hdr_cells[i].text = str(h)
         paragraphs = hdr_cells[i].paragraphs
         if paragraphs and paragraphs[0].runs:
-            paragraphs[0].runs[0].bold = True
+            for r in paragraphs[0].runs:
+                r.bold = True
+                r.font.name = 'Times New Roman'
+                r.font.size = Pt(11)
         hdr_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     # Data
@@ -121,19 +144,28 @@ def _create_styled_table(doc, title, headers, data, ilova_num):
                 text_val = str(val)
                 
             row_cells[i].text = text_val
+            for r in row_cells[i].paragraphs[0].runs:
+                r.font.name = 'Times New Roman'
+                r.font.size = Pt(11)
             row_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER if i > 1 else WD_ALIGN_PARAGRAPH.LEFT
 
     doc.add_paragraph() # Bo'sh joy
 
 
 def _replace_in_paragraph(paragraph, data: dict, images: dict = None):
+    text = paragraph.text
+    if "{{" not in text:
+        return
+        
     for key, value in data.items():
-        if key not in paragraph.text: continue
+        if key in text:
+            text = text.replace(key, value)
+            
+    if paragraph.text != text:
+        paragraph.text = text
         for run in paragraph.runs:
-            if key in run.text:
-                run.text = run.text.replace(key, value)
-        if key in paragraph.text:
-            paragraph.text = paragraph.text.replace(key, value)
+            run.font.name = 'Times New Roman'
+            run.font.size = Pt(12)
             
     if images:
         for img_key, img_path in images.items():

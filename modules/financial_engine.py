@@ -166,6 +166,7 @@ class FinancialEngine:
         self.MODEL_YEARS = min(max(self.muddat_yil, 1), 7)
         self.YEAR_LABELS = [f"{i}-yil" for i in range(1, self.MODEL_YEARS + 1)]
         self.CAPACITIES = [0.70, 0.75, 0.80, 0.85, 0.90, 0.95, 1.00][:self.MODEL_YEARS]
+        self.CAPACITIES_STR = [f"{int(c * 100)}%" for c in self.CAPACITIES]
 
         # Raw params for context
         self._raw = p
@@ -181,6 +182,7 @@ class FinancialEngine:
         self.t_loans = self._calc_loans()
         self.t_taxes = self._calc_taxes()
         self.t_cost_sold = self._calc_cost_sold()
+        self.t_cost_total = self._calc_cost_total()
         self.t_prof_loss = self._calc_prof_loss()
         self.t_cash_flow = self._calc_cash_flow()
         self.t_npv = self._calc_npv()
@@ -375,7 +377,7 @@ class FinancialEngine:
             ["Narx (1 birlik uchun)", narx] + [""] * (self.MODEL_YEARS - 1),
             ["Maksimal yillik tushum", max_revenue] + [""] * (self.MODEL_YEARS - 1),
             [""] * (self.MODEL_YEARS + 1),
-            ["Quvvat koeffitsienti"] + self.CAPACITIES,
+            ["Quvvat koeffitsienti"] + self.CAPACITIES_STR,
             ["Ishlab chiqarish hajmi (" + self.olchov + ")"] + yearly_hajm,
             ["JAMI SOTISH DAROMADLARI"] + yearly_revenue,
         ]
@@ -433,8 +435,21 @@ class FinancialEngine:
                     t.oylik_tolov,
                     t.qoldiq,
                 ])
+        
+        # Yillik jamlarni qo'shish
+        rows_monthly.append(["", "", "", "", ""])
+        rows_monthly.append(["YILLIK TO'LOVLAR", "", "", "", ""])
+        for yk in yillik:
+            rows_monthly.append([
+                f"{yk['yil']}-yil jami",
+                yk["asosiy_qarz"],
+                yk["foiz_tolov"],
+                yk["jami_tolov"],
+                yk["qoldiq"],
+            ])
+
         rows_monthly.append([
-            "JAMI",
+            "UMUMIY JAMI",
             sum(yk["asosiy_qarz"] for yk in yillik),
             sum(yk["foiz_tolov"] for yk in yillik),
             sum(yk["jami_tolov"] for yk in yillik),
@@ -584,6 +599,7 @@ class FinancialEngine:
             })
 
         rows = [
+            ["Rivojlanish quvvati", "%"] + self.CAPACITIES_STR,
             [asosiy_xarajat_nomi, "so'm"] + [c["xomashyo"] for c in yearly_cogs],
             ["Ishlab chiqarish ish haqi", "so'm"] + [c["ish_haqi"] for c in yearly_cogs],
             ["Amortizatsiya", "so'm"] + [c["amortizatsiya"] for c in yearly_cogs],
@@ -600,6 +616,12 @@ class FinancialEngine:
         texnik = [self.asosiy_vositalar * 0.001] * self.MODEL_YEARS
         boshqa = [rev * boshqa_ulush for rev in revenues]
         davr = [admin_jami + marketing[i] + texnik[i] + boshqa[i] for i in range(self.MODEL_YEARS)]
+        
+        # Kredit foizlari
+        kredit_foizlari = []
+        for i in range(self.MODEL_YEARS):
+            foiz = self.yillik_kredit[i]["foiz_tolov"] if i < len(self.yillik_kredit) else 0
+            kredit_foizlari.append(foiz)
 
         rows.extend([
             ["", ""] + [""] * self.MODEL_YEARS,
@@ -608,7 +630,9 @@ class FinancialEngine:
             ["Texnik xizmat", "so'm"] + texnik,
             ["Boshqa xarajatlar", "so'm"] + boshqa,
             ["Davr xarajatlari", "so'm"] + davr,
-            ["OPERATSION XARAJATLAR", "so'm"] + [yearly_cogs[i]["jami"] + davr[i] for i in range(self.MODEL_YEARS)],
+            ["Operatsion xarajatlar", "so'm"] + [yearly_cogs[i]["jami"] + davr[i] for i in range(self.MODEL_YEARS)],
+            ["Kredit foizlari", "so'm"] + kredit_foizlari,
+            ["SOTILGAN MAHSULOTLARNING XARAJATLARI (TANNARX)", "so'm"] + [yearly_cogs[i]["jami"] + davr[i] + kredit_foizlari[i] for i in range(self.MODEL_YEARS)],
         ])
 
         self.yearly_cogs = yearly_cogs
@@ -629,6 +653,79 @@ class FinancialEngine:
                 "yearly_admin": [admin_jami] * self.MODEL_YEARS,
                 "yearly_boshqa": boshqa,
             },
+        }
+
+    # ─────────────────────────────────────────────────────
+    # 9.5. COST TOTAL (10-ILOVA) - TO'LIQ QUVVATLI ISHLAB CHIQARISH XARAJATLARI
+    # ─────────────────────────────────────────────────────
+    def _calc_cost_total(self) -> Dict:
+        """10-ILOVA To'liq quvvatli ishlab chiqarish xarajatlari jadvallarini generatsiya qiladi."""
+        # Eng oxirgi yil (to'liq quvvatdagi) xarajatlarni olamiz
+        last_year_idx = min(self.MODEL_YEARS - 1, len(self.yearly_cogs) - 1)
+        cogs = self.yearly_cogs[last_year_idx]
+        
+        # O'zgaruvchan (Variable) vs Doimiy (Fixed) qilib ajratish qoidasi
+        # Xomashyo, energiya, transport = 100% o'zgaruvchan
+        # Ish haqi = 80% doimiy, 20% o'zgaruvchan
+        # Amortizatsiya, Ijara, Admin, Boshqa = 100% doimiy
+        
+        admin = self.yearly_admin[last_year_idx]
+        marketing = self.yearly_marketing[last_year_idx]
+        boshqa_davr = self.yearly_boshqa[last_year_idx]
+        texnik = self.asosiy_vositalar * 0.001
+        
+        xomashyo = cogs["xomashyo"]
+        ish_haqi = cogs["ish_haqi"]
+        amort = cogs["amortizatsiya"]
+        komm = cogs["kommunal"]
+        transport = cogs["transport"]
+        ijara = cogs["ijara"]
+        
+        rows = []
+        jami_fixed = 0
+        jami_var = 0
+        
+        def add_expense(nomi, full_val, fixed_ratio=1.0):
+            nonlocal jami_fixed, jami_var
+            f = full_val * fixed_ratio
+            v = full_val * (1 - fixed_ratio)
+            jami_fixed += f
+            jami_var += v
+            if full_val > 0:
+                rows.append([nomi, full_val, f, f"{fixed_ratio*100:.0f}%", v, f"{(1-fixed_ratio)*100:.0f}%"])
+
+        add_expense(self.cost_structure["asosiy_xarajat_nomi"], xomashyo, fixed_ratio=0.0)
+        add_expense("Ishlab chiqarish xodimlari ish haqi", ish_haqi, fixed_ratio=0.8)
+        add_expense("Amortizatsiya", amort, fixed_ratio=1.0)
+        add_expense("Kommunal xarajatlar", komm, fixed_ratio=0.0)
+        add_expense("Transport xarajatlari", transport, fixed_ratio=0.0)
+        add_expense("Ijara xarajatlari", ijara, fixed_ratio=1.0)
+        
+        rows.append(["TO'G'RIDAN TO'G'RI XARAJATLAR", cogs["jami"], jami_fixed, "", jami_var, ""])
+        rows.append(["", "", "", "", "", ""])
+        
+        prev_fixed, prev_var = jami_fixed, jami_var
+        
+        add_expense("Ma'muriyat xodimlari ish haqi", admin, fixed_ratio=1.0)
+        add_expense("Boshqa ko'zda tutilmagan xarajatlar", boshqa_davr, fixed_ratio=0.5)
+        add_expense("Asosiy vositalarga texnik xizmat", texnik, fixed_ratio=0.7)
+        add_expense("Marketing xarajatlari", marketing, fixed_ratio=0.7)
+        
+        rows.append(["", "", "", "", "", ""])
+        rows.append(["JAMI XARAJATLAR", cogs["jami"] + admin + boshqa_davr + texnik + marketing, jami_fixed, f"{jami_fixed/(jami_fixed+jami_var)*100:.1f}%" if (jami_fixed+jami_var)>0 else "", jami_var, f"{jami_var/(jami_fixed+jami_var)*100:.1f}%" if (jami_fixed+jami_var)>0 else ""])
+        
+        max_revenue = self.hajm * self.narx
+        rows.append(["TO'LIQ QUVVATDA SOTISH", max_revenue, "", "", "", ""])
+        
+        zararsiz = jami_fixed / (1 - (jami_var / max_revenue)) if max_revenue > 0 and jami_var < max_revenue else 0
+        rows.append(["ZARARSIZLANISH NUQTASI (so'm)", zararsiz, "", "", "", ""])
+        
+        return {
+            "title": "TO'LIQ QUVVATLI BO'LGAN ISHLAB CHIQARISH XARAJATLARI (1-yil uchun)",
+            "ilova": "10-ILOVA",
+            "headers": ["XARAJATLAR", "TO'LIQ XARAJATLAR (so'm)", "DOIMIY xarajat", "Ulush", "O'ZGARUVCHAN xarajat", "Ulush"],
+            "rows": rows,
+            "data": {},
         }
 
     # ─────────────────────────────────────────────────────
@@ -770,29 +867,37 @@ class FinancialEngine:
         self.yearly_cf = yearly_cf
 
         row_defs = [
-            ("Sotishdan tushgan tushum", [0] + [c["daromad"] for c in yearly_cf]),
+            ("Sotishdan tushgan tushum", [c["daromad"] for c in yearly_cf]),
         ]
         if self.soliq_turi == "mchj":
-            row_defs.append(("QQS", [0] + [c["qqs"] for c in yearly_cf]))
+            row_defs.append(("QQS", [c["qqs"] for c in yearly_cf]))
         row_defs.extend([
-            ("Sotishdan tushgan naqd pul", [0] + [c["sof_tushum"] for c in yearly_cf]),
-            ("Xizmat xarajatlari (tannarx)", [0] + [c["tannarx"] for c in yearly_cf]),
-            ("Yalpi pul tushumi", [0] + [c["yalpi_tushum"] for c in yearly_cf]),
-            ("Amortizatsiya (+)", [0] + [c["amortizatsiya"] for c in yearly_cf]),
-            ("Marketing xarajatlar", [0] + [c["marketing"] for c in yearly_cf]),
-            ("Ma'muriy xarajatlar", [0] + [c["admin"] for c in yearly_cf]),
-            ("Boshqa xarajatlar", [0] + [c["boshqa"] for c in yearly_cf]),
-            ("Operatsion pul oqimi", [0] + [c["operatsion_cf"] for c in yearly_cf]),
-            ("Investitsiyalar", [-investment] + [0] * self.MODEL_YEARS),
-            ("Foiz to'lovlari", [0] + [c["foiz"] for c in yearly_cf]),
-            ("Soliqlar", [0] + [c["soliq"] for c in yearly_cf]),
-            ("Asosiy qarz qaytarish", [0] + [c["asosiy_qarz"] for c in yearly_cf]),
-            ("SOF PUL OQIMI", [-investment] + [c["sof_cf"] for c in yearly_cf]),
-            ("KUMULYATIV PUL OQIMI", [-investment] + [c["kumulyativ"] for c in yearly_cf]),
+            ("Sotishdan tushgan naqd pul", [c["sof_tushum"] for c in yearly_cf]),
+            ("Xizmat xarajatlari (tannarx)", [c["tannarx"] for c in yearly_cf]),
+            ("Yalpi pul tushumi", [c["yalpi_tushum"] for c in yearly_cf]),
+            ("Amortizatsiya (+)", [c["amortizatsiya"] for c in yearly_cf]),
+            ("Marketing xarajatlar", [c["marketing"] for c in yearly_cf]),
+            ("Ma'muriy xarajatlar", [c["admin"] for c in yearly_cf]),
+            ("Boshqa xarajatlar", [c["boshqa"] for c in yearly_cf]),
+            ("Operatsion pul oqimi", [c["operatsion_cf"] for c in yearly_cf]),
+        ])
+        
+        # 0-yil uchun Investitsiya hisobini qo'shib jadvallash (Lekin 0-yil yo'q qilinayotgani sababli asosan CashFlow-da qoladi, Investment-ni ko'rsatish shart emas yillarga solganda)
+        # CF dagi Investitsiya qatorini -investment shaklida 1-yil o'rniga emas, oldin chiqaramiz:
+        
+        row_defs.extend([
+            ("Foiz to'lovlari", [c["foiz"] for c in yearly_cf]),
+            ("Soliqlar", [c["soliq"] for c in yearly_cf]),
+            ("Asosiy qarz qaytarish", [c["asosiy_qarz"] for c in yearly_cf]),
+            ("SOF PUL OQIMI", [c["sof_cf"] for c in yearly_cf]),
+            ("KUMULYATIV PUL OQIMI", [c["kumulyativ"] for c in yearly_cf]),
         ])
 
-        headers = ["Ko'rsatgichlar", "0-yil"] + self.YEAR_LABELS
+        headers = ["Ko'rsatgichlar"] + self.YEAR_LABELS
         rows = [[label] + vals for label, vals in row_defs]
+
+        # Jadval boshida Investitsiya qatorini qo'shsak bo'ladi (1-yildan deb hisoblab):
+        rows.insert(0, ["Investitsiyalar", -investment] + [""]*(self.MODEL_YEARS-1))
 
         return {
             "title": "PUL OQIMI (CASH FLOW)",
@@ -840,12 +945,19 @@ class FinancialEngine:
         for i in range(1, len(cf_list)):
             npv_rows.append([f"{i}-yil", cf_list[i], f"{disc_factors[i]:.6f}", pv_list[i]])
         npv_rows.append(["", "", "", ""])
-        npv_rows.append(["Jami joriy qiymat (JJQ)", "", "", sum(pv_list[1:])])
+        
+        jjq = sum(pv_list[1:])
+        sjq = npv_val
+        npv_rows.append(["Jami joriy qiymat (JJQ)", "", "", jjq])
         npv_rows.append(["Investitsion xarajatlar (IX)", "", "", -investment])
-        npv_rows.append(["SOF JORIY QIYMAT (SJQ=JJQ-IX)", "", "", npv_val])
+        npv_rows.append(["SOF JORIY QIYMAT (SJQ=JJQ-IX)", "", "", sjq])
         npv_rows.append(["Rentabellik indeksi (IR)", "", "", f"{pi:.4f}"])
         npv_rows.append(["Ichki daromad darajasi (IRR)", "", "", f"{irr_val}%" if irr_val else "—"])
         npv_rows.append(["Investitsiyalarni qaytarish muddati", "", "", f"{payback:.1f} yil" if payback <= self.MODEL_YEARS else "7+ yil"])
+
+        warning_msg = None
+        if sjq < 0 or roi < 0 or (irr_val is not None and irr_val < r):
+            warning_msg = "DIQQAT: Loyiha o'zini oqlamaydi (NPV salbiy). Rentabellikni oshirish uchun mahsulot/xizmat narxini ko'taring yoki xarajatlarni qisqartiring."
 
         self.indicators = {
             "npv": round(npv_val, 2),
@@ -859,6 +971,7 @@ class FinancialEngine:
             "jami_daromad": sum(self.t_prod_plan["data"]["yearly_revenue"]),
             "jami_sof_foyda": sum(p["sof_foyda"] for p in self.yearly_pnl),
             "discount_rate": self.discount_rate,
+            "warning": warning_msg
         }
 
         return {
@@ -888,6 +1001,7 @@ class FinancialEngine:
             self.t_prod_plan,
             self.t_loans,
             self.t_taxes,
+            self.t_cost_total,
             self.t_cost_sold,
             self.t_prof_loss,
             self.t_cash_flow,
@@ -941,6 +1055,7 @@ class FinancialEngine:
             "gaz": self.gaz,
             "suv": self.suv,
             "oqava": self.oqava,
+            "warning": ind["warning"] if ind.get("warning") else ""
         }
         ctx.update(self._raw)
         return ctx
