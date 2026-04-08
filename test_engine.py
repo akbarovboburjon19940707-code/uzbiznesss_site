@@ -77,21 +77,18 @@ print(f"  Payback: {ind2['payback']} yil")
 print("\n" + "=" * 60)
 print("TEST 3: Excel Writer")
 print("=" * 60)
-try:
-    from modules.excel_writer import write_excel_output
-    import os
-    template = os.path.join(os.path.dirname(__file__), "data.xlsx")
-    output = os.path.join(os.path.dirname(__file__), "test_output.xlsx")
-    if os.path.exists(template):
-        write_excel_output(template, output, e)
-        print(f"  Excel yaratildi: {output}")
-        if os.path.exists(output):
-            os.remove(output)
-            print("  Test fayl o'chirildi")
-    else:
-        print("  data.xlsx topilmadi, o'tkazildi")
-except Exception as ex:
-    print(f"  Excel xatolik: {ex}")
+from modules.excel_writer import write_excel_output
+import os
+template = os.path.join(os.path.dirname(__file__), "data.xlsx")
+output = os.path.join(os.path.dirname(__file__), "test_output.xlsx")
+if os.path.exists(template):
+    write_excel_output(template, output, e)
+    print(f"  Excel yaratildi: {output}")
+    if os.path.exists(output):
+        os.remove(output)
+        print("  Test fayl o'chirildi")
+else:
+    print("  data.xlsx topilmadi, o'tkazildi")
 
 # Test Word
 print("\n" + "=" * 60)

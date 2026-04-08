@@ -72,13 +72,66 @@
                             </div>
 
                             <div class="input-box full-span">
-                                <label>Tashabbuskor (FIO / Tashkilot) <span class="req">*</span></label>
-                                <input type="text" name="tashabbuskor" id="tashabbuskor" class="input-ctrl" required placeholder="To'liq nomini kiriting">
+                                <label>Tashabbuskor (Tashkilot nomi) <span class="req">*</span></label>
+                                <input type="text" name="tashabbuskor" id="tashabbuskor" class="input-ctrl" required placeholder="Masalan: 'Orzu' MCHJ yoki YTT">
+                            </div>
+
+                            <div class="input-box">
+                                <label>Mulkchilik shakli</label>
+                                <select name="mulk" id="mulk_select" class="input-ctrl">
+                                    <option value="YTT">Yakka tartibdagi tadbirkor (YTT)</option>
+                                    <option value="MCHJ">Mas'uliyati cheklangan jamiyat (MCHJ)</option>
+                                    <option value="OK">Oilaviy korxona (OK)</option>
+                                    <option value="F/X">Fermer xo'jaligi (F/X)</option>
+                                    <option value="Jismoniy shaxs">Jismoniy shaxs</option>
+                                </select>
+                            </div>
+                            
+                            <div class="input-box">
+                                <label>Soliq turi</label>
+                                <select name="soliq_turi" class="input-ctrl">
+                                    <option value="ytt">Aylanmadan olinadigan soliq (4%)</option>
+                                    <option value="mchj">QQS (12%) va Foyda solig'i</option>
+                                </select>
+                            </div>
+
+                            <div class="input-box">
+                                <label>Amalga oshirish manzili</label>
+                                <input type="text" name="manzil" class="input-ctrl" placeholder="Viloyat, tuman, ko'cha">
+                            </div>
+
+                            <div class="input-box">
+                                <label>Xizmat ko'rsatuvchi bank</label>
+                                <input type="text" name="bank" class="input-ctrl" placeholder="Masalan: ATB 'Qishloq qurilish bank'">
+                            </div>
+
+                            <div class="input-box">
+                                <label>STIR (INN)</label>
+                                <input type="number" name="stir" class="input-ctrl" placeholder="9 xonali raqam">
+                            </div>
+
+                            <div class="input-box">
+                                <label>JSHSHIR (PINFL)</label>
+                                <input type="number" name="jshshir" class="input-ctrl" placeholder="14 xonali raqam">
+                            </div>
+
+                            <div class="input-box full-span" style="border-top:1px solid rgba(255,255,255,0.1); padding-top:15px; margin-top:10px;">
+                                <h3 style="font-size:14px; margin-bottom:15px; color:#94a3b8">Rahbar ma'lumotlari</h3>
                             </div>
 
                             <div class="input-box full-span">
-                                <label>Amalga oshirish manzili</label>
-                                <input type="text" name="manzil" class="input-ctrl" placeholder="Viloyat, tuman, ko'cha">
+                                <label>Rahbar F.I.O <span class="req">*</span></label>
+                                <input type="text" name="fio" class="input-ctrl" required placeholder="To'liq ism sharifi">
+                            </div>
+
+                            <div class="input-box">
+                                <label>Pasport seriyasi va raqami</label>
+                                <input type="text" name="pasport" class="input-ctrl" placeholder="Masalan: AA 1234567">
+                            </div>
+
+                            <div class="input-box">
+                                <label>Kim tomonidan va qachon berilgan</label>
+                                <input type="text" name="berilgan_vaqti" class="input-ctrl" placeholder="Masalan: 01.01.2020, Toshkent sh. IIBB">
                             </div>
 
                             <div class="input-box full-span">

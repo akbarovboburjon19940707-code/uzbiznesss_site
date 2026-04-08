@@ -151,43 +151,48 @@ def _write_loans_sheet(wb, engine):
 def _write_yearly_values(wb, engine):
     """Boshqa sheetlarga yillik qiymatlarni yozish (formulalar o'rniga VALUES)."""
     years = 7
+    model_years = engine.MODEL_YEARS
 
     # Depreciate sheet
     if "Depreciate" in wb.sheetnames:
         ws = wb["Depreciate"]
-        dep = engine.t_depreciation["data"]["yearly"]
+        dep_list = engine.t_depreciation["data"]["yearly_list"]
         for y in range(years):
             col = 5 + y  # E=5, F=6, ..., K=11
-            ws.cell(row=5, column=col, value=dep)
-            ws.cell(row=7, column=col, value=dep)
-            ws.cell(row=8, column=col, value=dep * (y + 1))
+            val = dep_list[y] if y < len(dep_list) else ""
+            ws.cell(row=5, column=col, value=val)
+            ws.cell(row=7, column=col, value=val)
+            ws.cell(row=8, column=col, value=(val * (y + 1)) if val != "" else "")
 
     # ProdPlan revenue
     if "ProdPlan" in wb.sheetnames:
         ws = wb["ProdPlan"]
         revs = engine.t_prod_plan["data"]["yearly_revenue"]
-        hajms = engine.t_prod_plan["data"]["yearly_hajm"]
         caps = engine.CAPACITIES
         for y in range(years):
             col = 3 + y  # C=3, D=4, ..., I=9
-            ws.cell(row=24, column=col, value=caps[y])
-            ws.cell(row=58, column=col, value=revs[y])
+            ws.cell(row=24, column=col, value=caps[y] if y < len(caps) else "")
+            ws.cell(row=58, column=col, value=revs[y] if y < len(revs) else "")
 
     # ProfLoss
     if "ProfLoss" in wb.sheetnames:
         ws = wb["ProfLoss"]
         for y in range(years):
             col = 3 + y
-            p = engine.yearly_pnl[y]
-            ws.cell(row=4, column=col, value=p["daromad"])
-            ws.cell(row=6, column=col, value=p["sof_daromad"])
-            ws.cell(row=7, column=col, value=p["tannarx"])
-            ws.cell(row=8, column=col, value=p["yalpi_foyda"])
-            ws.cell(row=12, column=col, value=p["operatsion_foyda"])
-            ws.cell(row=13, column=col, value=p["foiz"])
-            ws.cell(row=14, column=col, value=p["ebt"])
-            ws.cell(row=15, column=col, value=p["soliq"])
-            ws.cell(row=17, column=col, value=p["sof_foyda"])
+            if y < model_years:
+                p = engine.yearly_pnl[y]
+                ws.cell(row=4, column=col, value=p["daromad"])
+                ws.cell(row=6, column=col, value=p["sof_daromad"])
+                ws.cell(row=7, column=col, value=p["tannarx"])
+                ws.cell(row=8, column=col, value=p["yalpi_foyda"])
+                ws.cell(row=12, column=col, value=p["operatsion_foyda"])
+                ws.cell(row=13, column=col, value=p["foiz"])
+                ws.cell(row=14, column=col, value=p["ebt"])
+                ws.cell(row=15, column=col, value=p["soliq"])
+                ws.cell(row=17, column=col, value=p["sof_foyda"])
+            else:
+                for row_idx in [4, 6, 7, 8, 12, 13, 14, 15, 17]:
+                    ws.cell(row=row_idx, column=col, value="")
 
     # CashFlow
     if "CashFlow" in wb.sheetnames:
@@ -195,29 +200,36 @@ def _write_yearly_values(wb, engine):
         ws.cell(row=15, column=3, value=-engine.loyiha_qiymati)
         for y in range(years):
             col = 4 + y  # D=4, ..., J=10
-            c = engine.yearly_cf[y]
-            ws.cell(row=4, column=col, value=c["daromad"])
-            ws.cell(row=7, column=col, value=c["sof_tushum"])
-            ws.cell(row=8, column=col, value=c["tannarx"])
-            ws.cell(row=9, column=col, value=c["yalpi_tushum"])
-            ws.cell(row=14, column=col, value=c["operatsion_cf"])
-            ws.cell(row=18, column=col, value=c["foiz"])
-            ws.cell(row=19, column=col, value=c["soliq"])
+            if y < model_years:
+                c = engine.yearly_cf[y]
+                ws.cell(row=4, column=col, value=c["daromad"])
+                ws.cell(row=7, column=col, value=c["sof_tushum"])
+                ws.cell(row=8, column=col, value=c["tannarx"])
+                ws.cell(row=9, column=col, value=c["yalpi_tushum"])
+                ws.cell(row=14, column=col, value=c["operatsion_cf"])
+                ws.cell(row=18, column=col, value=c["foiz"])
+                ws.cell(row=19, column=col, value=c["soliq"])
+            else:
+                for row_idx in [4, 7, 8, 9, 14, 18, 19]:
+                    ws.cell(row=row_idx, column=col, value="")
 
     # NPV
     if "npv" in wb.sheetnames:
         ws = wb["npv"]
         ind = engine.indicators
         ws.cell(row=6, column=3, value=-engine.loyiha_qiymati)
-        for y in range(years):
-            cf = engine.yearly_cf[y]["sof_cf"]
-            ws.cell(row=7 + y, column=3, value=cf)
-
         r = engine.discount_rate / 100
         for y in range(years):
-            disc = 1 / ((1 + r) ** (y + 1))
-            ws.cell(row=7 + y, column=4, value=disc)
-            ws.cell(row=7 + y, column=5, value=engine.yearly_cf[y]["sof_cf"] * disc)
+            if y < model_years:
+                cf = engine.yearly_cf[y]["sof_cf"]
+                ws.cell(row=7 + y, column=3, value=cf)
+                disc = 1 / ((1 + r) ** (y + 1))
+                ws.cell(row=7 + y, column=4, value=disc)
+                ws.cell(row=7 + y, column=5, value=cf * disc)
+            else:
+                ws.cell(row=7 + y, column=3, value="")
+                ws.cell(row=7 + y, column=4, value="")
+                ws.cell(row=7 + y, column=5, value="")
 
         ws.cell(row=16, column=5, value=ind["npv"])
         ws.cell(row=18, column=5, value=ind["irr"])
@@ -227,9 +239,14 @@ def _write_yearly_values(wb, engine):
         ws = wb["Taxes"]
         for y in range(years):
             col = 5 + y  # E=5, ..., K=11
-            tax_data = engine.yearly_taxes[y]
-            if engine.soliq_turi == "mchj":
-                ws.cell(row=5, column=col, value=tax_data["qqs"])
+            if y < model_years:
+                tax_data = engine.yearly_taxes[y]
+                if engine.soliq_turi == "mchj":
+                    ws.cell(row=5, column=col, value=tax_data["qqs"])
+                else:
+                    ws.cell(row=4, column=col, value=tax_data["aylanma"])
+                ws.cell(row=8, column=col, value=tax_data["jami"])
             else:
-                ws.cell(row=4, column=col, value=tax_data["aylanma"])
-            ws.cell(row=8, column=col, value=tax_data["jami"])
+                ws.cell(row=4, column=col, value="")
+                ws.cell(row=5, column=col, value="")
+                ws.cell(row=8, column=col, value="")
