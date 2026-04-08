@@ -107,6 +107,50 @@ def api_search():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 400
 
+@app.route("/api/orginfo/<stir>", methods=["GET"])
+@csrf.exempt
+def orginfo_mock(stir):
+    """Orginfo API orqali mijoz malumotlarini olish simulyatsiyasi."""
+    import random
+    
+    # Faqat 9 xonali raqam ekanligini tekshirish
+    if not stir or len(stir) != 9 or not stir.isdigit():
+        return jsonify({"success": False, "error": "STIR xato"}), 400
+        
+    # Haqiqiyga o'xshash mock ma'lumotlar generatori
+    # Korxonalar uchun mashhur prefikslar
+    ismlar = ["Azizbek", "Sardor", "Nodir", "Alisher", "Javohir", "Zilola", "Malika", "Rustam"]
+    familiyalar = ["Karimov", "Abdullayev", "Rahmonov", "Ibragimov", "Yusupov", "Toshmatov", "Aliyev"]
+    hududlar = ["Toshkent sh., Yunusobod tumani", "Samarqand sh., Registon ko'chasi", "Farg'ona sh., Alisher Navoiy ko'chasi", "Buxoro sh., Islom Karimov ko'chasi", "Andijon sh., Bobur shoh ko'chasi"]
+    
+    # Default behavior for deterministic mock (STIR orqali)
+    random.seed(int(stir))
+    mulk_shakli = "MCHJ" if random.random() > 0.4 else "YTT"
+    rahbar_fio = f"{random.choice(familiyalar)} {random.choice(ismlar)}"
+    
+    if mulk_shakli == "MCHJ":
+        nomi = f"{random.choice(['Grand', 'Art', 'Mega', 'Star', 'Royal', 'Biznes'])} {random.choice(['Invest', 'Qurilish', 'Trade', 'Group', 'Servis'])} MCHJ"
+        soliq = "mchj"
+    else:
+        nomi = f"YTT {rahbar_fio}"
+        soliq = "ytt"
+        
+    bank_turlari = ["Hamkorbank ATB", "SQB ATB", "Xalq Banki", "NBU ATB", "Trastbank", "Kapitalbank ATB", "Asakabank"]
+        
+    data = {
+        "tashabbuskor": nomi,
+        "rahbar": rahbar_fio,
+        "manzil": random.choice(hududlar),
+        "mulk": mulk_shakli,
+        "soliq_turi": soliq,
+        "bank": random.choice(bank_turlari),
+        "yaratilgan_sana": f"{random.randint(1, 28)}.{random.randint(1, 12)}.{random.randint(2015, 2024)}"
+    }
+    
+    # 500ms delay to simulate network request API fetch
+    time.sleep(0.5)
+    return jsonify({"success": True, "data": data})
+
 
 # ============================================================
 # ROUTES — TO'LOV TIZIMI

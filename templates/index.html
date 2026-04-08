@@ -89,7 +89,7 @@
                             
                             <div class="input-box">
                                 <label>Soliq turi</label>
-                                <select name="soliq_turi" class="input-ctrl">
+                                <select name="soliq_turi" id="soliq_turi_select" class="input-ctrl">
                                     <option value="ytt">Aylanmadan olinadigan soliq (4%)</option>
                                     <option value="mchj">QQS (12%) va Foyda solig'i</option>
                                 </select>
@@ -97,17 +97,20 @@
 
                             <div class="input-box">
                                 <label>Amalga oshirish manzili</label>
-                                <input type="text" name="manzil" class="input-ctrl" placeholder="Viloyat, tuman, ko'cha">
+                                <input type="text" name="manzil" id="manzil_input" class="input-ctrl" placeholder="Viloyat, tuman, ko'cha">
                             </div>
 
                             <div class="input-box">
                                 <label>Xizmat ko'rsatuvchi bank</label>
-                                <input type="text" name="bank" class="input-ctrl" placeholder="Masalan: ATB 'Qishloq qurilish bank'">
+                                <input type="text" name="bank" id="bank_input" class="input-ctrl" placeholder="Masalan: ATB 'Qishloq qurilish bank'">
                             </div>
 
                             <div class="input-box">
                                 <label>STIR (INN)</label>
-                                <input type="number" name="stir" class="input-ctrl" placeholder="9 xonali raqam">
+                                <div style="position:relative">
+                                    <input type="number" name="stir" id="stir_input" class="input-ctrl" placeholder="9 xonali raqam">
+                                    <div id="org_loader" style="display:none; position:absolute; right:12px; top:12px; font-size:12px; color:var(--accent); font-weight:bold;">Izlanmoqda...</div>
+                                </div>
                             </div>
 
                             <div class="input-box">
@@ -121,7 +124,7 @@
 
                             <div class="input-box full-span">
                                 <label>Rahbar F.I.O <span class="req">*</span></label>
-                                <input type="text" name="fio" class="input-ctrl" required placeholder="To'liq ism sharifi">
+                                <input type="text" name="fio" id="fio_input" class="input-ctrl" required placeholder="To'liq ism sharifi">
                             </div>
 
                             <div class="input-box">

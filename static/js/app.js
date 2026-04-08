@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 4. Boshqa komponentlar
     setupAutocomplete();
     setupUploads();
+    setupOrginfoFetcher();
     
     // Sidebar ni boshlang'ich holatda bo'shatish
     updateSidebarScorecard(null);
@@ -31,6 +32,45 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ============================================================
 // INITIALIZATION
 // ============================================================
+function setupOrginfoFetcher() {
+    const stirInput = document.getElementById('stir_input');
+    if (!stirInput) return;
+    
+    stirInput.addEventListener('input', async () => {
+        const val = stirInput.value.trim();
+        if (val.length === 9) {
+            const loader = document.getElementById('org_loader');
+            if (loader) loader.style.display = 'block';
+            
+            try {
+                const resp = await fetch(`/api/orginfo/${val}`);
+                const res = await resp.json();
+                
+                if (res.success && res.data) {
+                    const d = res.data;
+                    document.getElementById('tashabbuskor').value = d.tashabbuskor || '';
+                    document.getElementById('fio_input').value = d.rahbar || '';
+                    document.getElementById('manzil_input').value = d.manzil || '';
+                    document.getElementById('bank_input').value = d.bank || '';
+                    
+                    const mulkSel = document.getElementById('mulk_select');
+                    if (mulkSel && d.mulk) mulkSel.value = d.mulk;
+                    
+                    const soliqSel = document.getElementById('soliq_turi_select');
+                    if (soliqSel && d.soliq_turi) soliqSel.value = d.soliq_turi;
+                    
+                    // Flash success effect
+                    stirInput.style.borderColor = 'var(--accent)';
+                    setTimeout(() => stirInput.style.borderColor = '', 1500);
+                }
+            } catch (e) {
+                console.error("Orginfo fetch error:", e);
+            } finally {
+                if (loader) loader.style.display = 'none';
+            }
+        }
+    });
+}
 async function loadCategories() {
     try {
         const resp = await fetch('/api/categories');
