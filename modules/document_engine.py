@@ -66,7 +66,7 @@ def create_word_document(template_path: str, output_path: str, context: dict = N
         from docx.shared import Pt
         
         headers = table_data.get("headers", [])
-        data = table_data.get("rows", [])
+        tbl_rows = table_data.get("rows", [])
         if not headers: return
         
         new_table = doc_ref.add_table(rows=1, cols=len(headers))
@@ -81,7 +81,7 @@ def create_word_document(template_path: str, output_path: str, context: dict = N
                 r.font.size = Pt(11)
             hdr_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
             
-        for row_data in data:
+        for row_data in tbl_rows:
             row_cells = new_table.add_row().cells
             for i, val in enumerate(row_data):
                 if isinstance(val, (int, float)):
@@ -108,6 +108,8 @@ def create_word_document(template_path: str, output_path: str, context: dict = N
             elif tbl["ilova"] == "5-ILOVA": table_map["shtat_jadvali"] = tbl
             elif tbl["ilova"] == "KOMMUNAL": table_map["kommunikatsiya"] = tbl
             elif tbl["ilova"] == "6-ILOVA": table_map["daromad_sxemasi"] = tbl
+            elif tbl["ilova"] == "10-ILOVA": table_map["foydalanish_xarajatlari"] = tbl
+            elif tbl["ilova"] == "11-ILOVA": table_map["tannarx"] = tbl
 
     for table in doc.tables:
         matched_key = None
@@ -122,8 +124,10 @@ def create_word_document(template_path: str, output_path: str, context: dict = N
                     matched_key = "loyiha_qiymati"
                 elif any(x in text for x in ['shtat jadvali', 'ish haqi', 'xodimlar soni', 'mehnat xarajatlari']):
                     matched_key = "shtat_jadvali"
-                elif any(x in text for x in ['sotish rejasi', 'quvvatlarni', 'foydalanish xarajatlari', 'umumiy xarajatlar']):
-                    matched_key = "DELETE"
+                elif any(x in text for x in ['sotish rejasi', 'quvvatlarni']):
+                    matched_key = "daromad_sxemasi"
+                elif any(x in text for x in ['foydalanish xarajatlari', 'umumiy xarajatlar']):
+                    matched_key = "foydalanish_xarajatlari"
                 if matched_key: break
             if matched_key: break
             
@@ -138,6 +142,62 @@ def create_word_document(template_path: str, output_path: str, context: dict = N
             if key in table_map:
                 insert_table_after(t._element, table_map[key], doc)
             parent.remove(t._element)
+
+    # 1.5. Explicit placement for Kommunal table after heading 6.3
+    if "kommunikatsiya" in table_map:
+        found_6_3 = False
+        target_para = None
+        for i, p in enumerate(doc.paragraphs):
+            if "6.3." in p.text and "Kommunikatsiya" in p.text:
+                found_6_3 = True
+                # Find the next non-empty paragraph after the heading
+                for next_idx in range(i + 1, len(doc.paragraphs)):
+                    if doc.paragraphs[next_idx].text.strip():
+                        target_para = doc.paragraphs[next_idx]
+                        break
+                break
+        
+        if target_para:
+            # Create the table as before
+            tbl_data = table_map["kommunikatsiya"]
+            headers = tbl_data.get("headers", [])
+            komm_rows = tbl_data.get("rows", [])
+            title = tbl_data.get("title", "")
+            
+            # Use the existing insertion logic helper but adapted
+            new_table = doc.add_table(rows=1, cols=len(headers))
+            new_table.style = 'Table Grid'
+            hdr_cells = new_table.rows[0].cells
+            for idx, h in enumerate(headers):
+                hdr_cells[idx].text = str(h)
+                for r in hdr_cells[idx].paragraphs[0].runs:
+                    r.bold = True
+                    r.font.name = 'Times New Roman'
+                    r.font.size = Pt(11)
+                hdr_cells[idx].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            for row_data in komm_rows:
+                row_cells = new_table.add_row().cells
+                for idx, val in enumerate(row_data):
+                    if isinstance(val, (int, float)):
+                        if isinstance(val, bool): text_val = str(val)
+                        elif isinstance(val, float) and 0 < abs(val) < 100: text_val = f"{val:.2f}" if val % 1 != 0 else str(int(val))
+                        else: text_val = f"{val:,.0f}".replace(",", " ")
+                    else: text_val = str(val)
+                    row_cells[idx].text = text_val
+                    for r in row_cells[idx].paragraphs[0].runs:
+                        r.font.name = 'Times New Roman'
+                        r.font.size = Pt(11)
+                    row_cells[idx].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER if idx > 1 else WD_ALIGN_PARAGRAPH.LEFT
+
+            # Correctly insert AFTER target_para
+            parent = target_para._element.getparent()
+            idx = parent.index(target_para._element)
+            parent.insert(idx + 1, new_table._element)
+            
+            # Also add a blank paragraph after the table for spacing
+            new_p = doc.add_paragraph()
+            parent.insert(idx + 2, new_p._element)
 
     # 2. Add Dynamic Tables (Ilovalar)
     if model:

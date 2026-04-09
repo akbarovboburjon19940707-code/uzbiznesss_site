@@ -104,9 +104,9 @@ try:
         create_word_document(template, output, ctx, model=e)
         sz = os.path.getsize(output)
         print(f"  Word yaratildi: {output} ({sz:,} bytes)")
-        if os.path.exists(output):
-            os.remove(output)
-            print("  Test fayl o'chirildi")
+        # if os.path.exists(output):
+        #     os.remove(output)
+        #     print("  Test fayl o'chirildi")
     else:
         print("  template.docx topilmadi")
 except Exception as ex:
