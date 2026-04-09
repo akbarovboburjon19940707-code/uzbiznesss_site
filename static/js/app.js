@@ -495,8 +495,12 @@ async function processPaymentAndDownload() {
             const blob = await resp.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url; a.download = 'biznes_reja.pdf';
+            a.href = url; 
+            a.download = 'biznes_reja.pdf';
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
             setTimeout(() => overlay.classList.remove('active'), 1000);
         } else {
             const res = await resp.json();

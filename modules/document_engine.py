@@ -346,55 +346,71 @@ def _replace_in_paragraph(paragraph, data: dict, images: dict = None):
 
 
 def convert_to_pdf(input_path: str, output_path: str) -> str:
-    # 1. docx2pdf
-    try:
-        logger.info(f"PDF ga o'tkazilmoqda (docx2pdf): {input_path}")
-        from docx2pdf import convert
-        convert(input_path, output_path)
-        if os.path.exists(output_path): return output_path
-    except Exception as e:
-        logger.warning(f"docx2pdf xatosi: {e}")
-    
-    # 2. LibreOffice
-    try:
-        logger.info(f"PDF ga o'tkazilmoqda (LibreOffice): {input_path}")
-        import subprocess
-        outdir = os.path.dirname(output_path)
-        res = subprocess.run(['libreoffice', '--headless', '--convert-to', 'pdf',
-                        '--outdir', outdir, input_path],
-                       capture_output=True, timeout=60)
-        if res.returncode != 0:
-            logger.warning(f"LibreOffice returncode: {res.returncode}, stderr: {res.stderr.decode(errors='ignore')}")
-        
-        name = os.path.splitext(os.path.basename(input_path))[0] + ".pdf"
-        lo_pdf = os.path.join(outdir, name)
-        if os.path.exists(lo_pdf) and lo_pdf != output_path:
-            os.rename(lo_pdf, output_path)
-        if os.path.exists(output_path): return output_path
-    except Exception as e:
-        logger.warning(f"LibreOffice xatosi: {e}")
-
-    # 3. win32com
     if os.name == 'nt':
         try:
-            logger.info(f"PDF ga o'tkazilmoqda (win32com): {input_path}")
-            import pythoncom, win32com.client
+            import pythoncom
             pythoncom.CoInitialize()
-            word = win32com.client.Dispatch("Word.Application")
-            word.Visible = False
-            doc = word.Documents.Open(os.path.abspath(input_path))
-            doc.SaveAs(os.path.abspath(output_path), FileFormat=17) # 17 is wdFormatPDF
-            doc.Close()
-            word.Quit()
+        except Exception:
+            pass
+            
+    try:
+        # 1. docx2pdf
+        try:
+            logger.info(f"PDF ga o'tkazilmoqda (docx2pdf): {input_path}")
+            from docx2pdf import convert
+            convert(input_path, output_path)
             if os.path.exists(output_path): return output_path
         except Exception as e:
-            logger.warning(f"win32com xatosi: {e}")
-            # Ensure Word is closed if it opened
-            try: word.Quit()
-            except: pass
-    
-    logger.error("Barcha PDF konvertatsiya usullari muvaffaqiyatsiz tugadi.")
-    return None
+            logger.warning(f"docx2pdf xatosi: {e}")
+        
+        # 2. LibreOffice
+        try:
+            logger.info(f"PDF ga o'tkazilmoqda (LibreOffice): {input_path}")
+            import subprocess
+            outdir = os.path.dirname(output_path)
+            res = subprocess.run(['libreoffice', '--headless', '--convert-to', 'pdf',
+                            '--outdir', outdir, input_path],
+                           capture_output=True, timeout=60)
+            if res.returncode != 0:
+                logger.warning(f"LibreOffice returncode: {res.returncode}, stderr: {res.stderr.decode(errors='ignore')}")
+            
+            name = os.path.splitext(os.path.basename(input_path))[0] + ".pdf"
+            lo_pdf = os.path.join(outdir, name)
+            if os.path.exists(lo_pdf) and lo_pdf != output_path:
+                os.rename(lo_pdf, output_path)
+            if os.path.exists(output_path): return output_path
+        except Exception as e:
+            logger.warning(f"LibreOffice xatosi: {e}")
+
+        # 3. win32com
+        if os.name == 'nt':
+            word = None
+            try:
+                import win32com.client
+                logger.info(f"PDF ga o'tkazilmoqda (win32com): {input_path}")
+                word = win32com.client.Dispatch("Word.Application")
+                word.Visible = False
+                doc = word.Documents.Open(os.path.abspath(input_path))
+                doc.SaveAs(os.path.abspath(output_path), FileFormat=17) # 17 is wdFormatPDF
+                doc.Close()
+                word.Quit()
+                if os.path.exists(output_path): return output_path
+            except Exception as e:
+                logger.warning(f"win32com xatosi: {e}")
+                # Ensure Word is closed if it opened
+                try: 
+                    if word: word.Quit()
+                except: pass
+        
+        logger.error("Barcha PDF konvertatsiya usullari muvaffaqiyatsiz tugadi.")
+        return None
+    finally:
+        if os.name == 'nt':
+            try:
+                import pythoncom
+                pythoncom.CoUninitialize()
+            except Exception:
+                pass
 
 
 def merge_pdfs(pdf_paths: list, output_path: str) -> str:
