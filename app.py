@@ -355,7 +355,12 @@ def save():
                     pdfs.append(extra_pdf)
 
         if not pdfs:
-            return jsonify({"success": False, "errors": ["PDF yaratib bo'lmadi."]}), 500
+            err_msg = "PDF yaratib bo'lmadi. "
+            if os.name != 'nt':
+                err_msg += "Serverda LibreOffice o'rnatilmagan bo'lishi mumkin."
+            else:
+                err_msg += "Microsoft Word bilan bog'liq muammo yuz berdi."
+            return jsonify({"success": False, "errors": [err_msg]}), 500
 
         # 8. Birlashtirish
         final = os.path.join(session_dir, "final.pdf")
