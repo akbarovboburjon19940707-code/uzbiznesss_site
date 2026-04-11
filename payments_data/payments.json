@@ -1,0 +1,14 @@
+{
+  "e34e0c64-ce3": {
+    "id": "e34e0c64-ce3",
+    "user_name": "TEST_XARIDOR",
+    "loyiha_nomi": "Mebellarni ishlab chiqarish",
+    "amount": 80000,
+    "status": "reviewing",
+    "receipt_file": "test_chek.png",
+    "created_at": "2026-04-11 18:26:15",
+    "submitted_at": "2026-04-11 18:26:15",
+    "reviewed_at": null,
+    "admin_note": ""
+  }
+}

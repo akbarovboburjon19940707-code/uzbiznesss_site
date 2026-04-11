@@ -268,6 +268,7 @@ def api_payment_status(payment_id):
 # ROUTES — ADMIN PANEL
 # ============================================================
 @app.route("/admin/payments", methods=["GET", "POST"])
+@csrf.exempt
 def admin_payments():
     if request.method == "POST":
          pwd = request.form.get("password", "")
