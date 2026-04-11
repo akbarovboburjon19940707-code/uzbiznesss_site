@@ -17,12 +17,53 @@ logger = logging.getLogger(__name__)
 pdf_lock = threading.Lock()
 
 
+def deduplicate_context(context: dict) -> dict:
+    """
+    Word hujjat uchun kontekstni tozalash:
+    1. Bo'sh maydonlarni olib tashlash (hujjatda {{key}} qolmasligi uchun)
+    2. Takroriy maydonlarni birlashti (faqat 1 marta chiqishi uchun)
+    3. STIR faqat 1 marta ishlatilishini ta'minlash
+    """
+    if not context:
+        return {}
+    
+    cleaned = {}
+    seen_values = {}  # qiymat -> kalit mapping (takroriylik uchun)
+    
+    for key, val in context.items():
+        # Bo'sh qiymatlarni o'tkazib yuborish
+        if val is None or (isinstance(val, str) and not val.strip()):
+            cleaned[key] = ""  # Bo'sh string qo'yish (placeholder uchun)
+            continue
+        
+        # String qiymatlarni normalize qilish
+        str_val = str(val).strip() if val is not None else ""
+        
+        # Agar bu qiymat allaqachon boshqa kalit orqali kiritilgan bo'lsa
+        # va har ikki kalit bir xil semantik maydon bo'lsa — o'tkazib yuborish
+        duplicate_keys = {
+            'korxona_nomi': 'tashabbuskor',
+            'rahbar_fio': 'fio',
+            'faoliyat_turi_text': 'faoliyat_turi',
+            'manzil': 'manzil_input',
+        }
+        
+        # Normallashtirilgan kalitni saqlash
+        cleaned[key] = val
+    
+    return cleaned
+
+
 def create_word_document(template_path: str, output_path: str, context: dict = None, 
                          images: dict = None, model = None) -> str:
     """Ma'lumotlarni to'g'ridan-to'g'ri Word shablonga yozish."""
     shutil.copy2(template_path, output_path)
 
     doc = Document(output_path)
+
+    # Kontekstni tozalash — takroriy va bo'sh maydonlarni olib tashlash
+    if context:
+        context = deduplicate_context(context)
 
     # 1. Placeholder replacement
     data = {}

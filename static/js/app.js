@@ -25,87 +25,212 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupAutocomplete();
     setupUploads();
     setupOrginfoFetcher();
+    setupStatusWatchers();
     
-    // Sidebar ni boshlang'ich holatda bo'shatish
+    // Sidebar ni boshlang'ich holatda
     updateSidebarScorecard(null);
+    updateStatusPanel();
 });
 
 // ============================================================
 // INITIALIZATION
 // ============================================================
+// ============================================================
+// MULKCHILIK SHAKLI TANLASH
+// ============================================================
+let selectedMulk = '';
+
+function selectMulk(mulk) {
+    selectedMulk = mulk;
+    const hidden = document.getElementById('mulk_hidden');
+    if (hidden) hidden.value = mulk;
+
+    // Kartalar vizual holatini yangilash
+    document.querySelectorAll('.mulk-type-card').forEach(card => {
+        card.classList.toggle('active', card.dataset.mulk === mulk);
+    });
+
+    // Soliq turini avtomatik o'rnatish
+    const soliqEl = document.getElementById('soliq_turi_select');
+    if (soliqEl) {
+        if (mulk === 'MCHJ' || mulk === 'XK') {
+            soliqEl.value = 'mchj';
+        } else {
+            soliqEl.value = 'ytt';
+        }
+    }
+
+    // Sidebar yangilash
+    updateStatusPanel();
+}
+
+// ============================================================
+// STIR LOOKUP — Yagona, takrorlanmaydigan
+// ============================================================
 function setupOrginfoFetcher() {
     const stirInput = document.getElementById('stir_input');
     if (!stirInput) return;
     
-    stirInput.addEventListener('input', async () => {
-        const val = stirInput.value.trim();
-        
-        // 9 xonadan kam/ko'p bo'lsa xato qizil rang
-        if (val.length > 0 && val.length !== 9) {
-            stirInput.style.borderColor = '#ef4444'; 
-            return;
-        } else {
-            stirInput.style.borderColor = '';
+    let stirTimer = null;
+
+    stirInput.addEventListener('input', () => {
+        // Faqat raqamlarga ruxsat berish
+        stirInput.value = stirInput.value.replace(/\D/g, '');
+        const val = stirInput.value;
+        const container = stirInput.closest('.stir-input-container');
+        const loader = document.getElementById('stirLoader');
+        const found = document.getElementById('stirFound');
+        const hint = document.getElementById('stirHint');
+
+        clearTimeout(stirTimer);
+
+        // Reset status
+        if (loader) loader.classList.add('hidden');
+        if (found) found.classList.add('hidden');
+        if (container) container.classList.remove('stir-success');
+
+        if (val.length > 0 && val.length < 9) {
+            if (hint) hint.textContent = `${val.length}/9 raqam kiritildi...`;
+        } else if (val.length === 0) {
+            if (hint) hint.textContent = "STIR kiritganingizda ma'lumotlar avtomatik to'ldiriladi";
         }
 
         if (val.length === 9) {
-            const loader = document.getElementById('org_loader');
-            if (loader) loader.style.display = 'block';
-            stirInput.style.opacity = '0.7';
-            
-            try {
-                const resp = await fetch(`/api/orginfo/${val}`);
-                const res = await resp.json();
-                
-                if (resp.ok && res.success && res.data) {
-                    const d = res.data;
-                    
-                    // Input maydonlarni avtomatik to'ldirish
-                    if (document.getElementById('tashabbuskor')) document.getElementById('tashabbuskor').value = d.tashabbuskor || '';
-                    if (document.getElementById('fio_input')) document.getElementById('fio_input').value = d.rahbar || '';
-                    if (document.getElementById('manzil_input')) document.getElementById('manzil_input').value = d.manzil || '';
-                    if (document.getElementById('bank_input')) document.getElementById('bank_input').value = d.bank || '';
-                    
-                    // Ro'yxatdan o'tgan sana
-                    const sanaInput = document.getElementById('ro_sana_input');
-                    if (sanaInput) sanaInput.value = d.yaratilgan_sana || '';
-                    
-                    // Mulkchilik shakli
-                    const mulkSel = document.getElementById('mulk_select');
-                    if (mulkSel && d.mulk) mulkSel.value = d.mulk;
-                    
-                    // Soliq turi
-                    const soliqSel = document.getElementById('soliq_turi_select');
-                    if (soliqSel && d.soliq_turi) soliqSel.value = d.soliq_turi;
+            if (hint) hint.textContent = "Tekshirilmoqda...";
+            if (loader) loader.classList.remove('hidden');
+            stirTimer = setTimeout(() => lookupStir(val), 300);
+        }
 
-                    // Faoliyat turi (faqat UI visual mapping, agar mock jo'natsa)
-                    if (d.faoliyat_turi) {
-                        const typeMap = {
-                            "Savdo": "savdo",
-                            "Ishlab chiqarish": "ishlab_chiqarish",
-                            "Xizmat ko'rsatish": "xizmat",
-                            "Qishloq xo'jaligi": "qishloq_xojaligi"
-                        };
-                        const mappedType = typeMap[d.faoliyat_turi] || 'xizmat';
-                        selectFaoliyat(mappedType);
-                    }
-                    
-                    // Flash success effect (Muvaffaqiyatli ma'lumot olinganda Yashil border)
-                    stirInput.style.borderColor = '#10b981';
-                    setTimeout(() => stirInput.style.borderColor = '', 2000);
-                } else {
-                    // Agar API dan xatolik qaytsa (masalan STIR topilmadi)
-                    stirInput.style.borderColor = '#ef4444';
-                    showAlert(res.error || "STIR bo'yicha ma'lumot topilmadi");
-                }
-            } catch (e) {
-                console.error("Orginfo fetch error:", e);
-                stirInput.style.borderColor = '#ef4444';
-                showAlert("Tarmoq xatosi yoki API javob bermadi");
-            } finally {
-                if (loader) loader.style.display = 'none';
-                stirInput.style.opacity = '1';
+        // Sidebar yangilash
+        updateStatusPanel();
+    });
+}
+
+async function lookupStir(stir) {
+    const stirInput = document.getElementById('stir_input');
+    const container = stirInput?.closest('.stir-input-container');
+    const loader = document.getElementById('stirLoader');
+    const found = document.getElementById('stirFound');
+    const hint = document.getElementById('stirHint');
+
+    try {
+        const resp = await fetch(`/api/orginfo/${stir}`);
+        const res = await resp.json();
+
+        if (loader) loader.classList.add('hidden');
+
+        if (resp.ok && res.success && res.data) {
+            const d = res.data;
+
+            // Muvaffaqiyat
+            if (found) found.classList.remove('hidden');
+            if (container) container.classList.add('stir-success');
+            if (hint) hint.textContent = "✓ Ma'lumotlar avtomatik to'ldirildi";
+
+            // Maydonlarni to'ldirish — faqat 1 marta, takrorlanmasdan
+            if (document.getElementById('tashabbuskor') && d.tashabbuskor) 
+                document.getElementById('tashabbuskor').value = d.tashabbuskor;
+            if (document.getElementById('fio_input') && d.rahbar) 
+                document.getElementById('fio_input').value = d.rahbar;
+            if (document.getElementById('manzil_input') && d.manzil) 
+                document.getElementById('manzil_input').value = d.manzil;
+            if (document.getElementById('bank_input') && d.bank) 
+                document.getElementById('bank_input').value = d.bank;
+            if (document.getElementById('ro_sana_input') && d.yaratilgan_sana) 
+                document.getElementById('ro_sana_input').value = d.yaratilgan_sana;
+            if (document.getElementById('faoliyat_turi_text') && d.faoliyat_turi) 
+                document.getElementById('faoliyat_turi_text').value = d.faoliyat_turi;
+
+            // Mulkchilik shakli
+            if (d.mulk) selectMulk(d.mulk);
+
+            // Soliq turi
+            const soliqEl = document.getElementById('soliq_turi_select');
+            if (soliqEl && d.soliq_turi) soliqEl.value = d.soliq_turi;
+
+            // Faoliyat yo'nalishi kartasini tanlash
+            if (d.faoliyat_turi) {
+                const typeMap = {
+                    "Savdo": "savdo",
+                    "Ishlab chiqarish": "ishlab_chiqarish",
+                    "Xizmat ko'rsatish": "xizmat",
+                    "Qishloq xo'jaligi": "qishloq_xojaligi"
+                };
+                const mappedType = typeMap[d.faoliyat_turi] || 'xizmat';
+                selectFaoliyat(mappedType);
             }
+
+            // Flash effekt — to'ldirilgan maydonlar
+            document.querySelectorAll('#step1 .input-ctrl').forEach(inp => {
+                if (inp.value && inp.id !== 'stir_input') {
+                    inp.style.borderColor = '#22c55e';
+                    inp.style.background = '#f0fdf4';
+                    setTimeout(() => {
+                        inp.style.borderColor = '';
+                        inp.style.background = '';
+                    }, 2500);
+                }
+            });
+
+        } else {
+            if (hint) hint.textContent = "STIR bo'yicha ma'lumot topilmadi — qo'lda kiriting";
+            if (container) container.classList.remove('stir-success');
+        }
+    } catch (e) {
+        console.error("STIR lookup error:", e);
+        if (loader) loader.classList.add('hidden');
+        if (hint) hint.textContent = "Tarmoq xatosi — qo'lda kiriting";
+    }
+
+    updateStatusPanel();
+}
+
+// ============================================================
+// SIDEBAR STATUS PANEL — Ma'lumotlar holati
+// ============================================================
+function updateStatusPanel() {
+    const fields = {
+        mulk: { el: document.getElementById('statusMulk'), valEl: document.getElementById('statusMulkVal'), value: selectedMulk },
+        stir: { el: document.getElementById('statusStir'), valEl: document.getElementById('statusStirVal'), value: document.getElementById('stir_input')?.value?.trim() || '' },
+        name: { el: document.getElementById('statusName'), valEl: document.getElementById('statusNameVal'), value: document.getElementById('tashabbuskor')?.value?.trim() || '' },
+        faoliyat: { el: document.getElementById('statusFaoliyat'), valEl: document.getElementById('statusFaoliyatVal'), value: selectedFaoliyat || document.getElementById('faoliyat_turi_text')?.value?.trim() || '' },
+        rahbar: { el: document.getElementById('statusRahbar'), valEl: document.getElementById('statusRahbarVal'), value: document.getElementById('fio_input')?.value?.trim() || '' },
+    };
+
+    let count = 0;
+    const total = 5;
+
+    for (const [key, item] of Object.entries(fields)) {
+        if (!item.el) continue;
+        const hasValue = item.value && item.value.length > 0;
+        item.el.classList.toggle('completed', hasValue);
+        if (item.valEl) {
+            if (hasValue) {
+                let displayVal = item.value;
+                if (displayVal.length > 14) displayVal = displayVal.substring(0, 14) + '…';
+                item.valEl.textContent = displayVal;
+                item.valEl.style.color = '#16a34a';
+            } else {
+                item.valEl.textContent = '—';
+                item.valEl.style.color = '';
+            }
+        }
+        if (hasValue) count++;
+    }
+
+    const pct = Math.round((count / total) * 100);
+    const bar = document.getElementById('statusProgressBar');
+    const label = document.getElementById('statusProgressPercent');
+    if (bar) bar.style.width = pct + '%';
+    if (label) label.textContent = pct;
+}
+
+// Sidebar status panelni input o'zgarganda yangilash
+function setupStatusWatchers() {
+    ['tashabbuskor', 'fio_input', 'stir_input', 'faoliyat_turi_text'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', () => updateStatusPanel());
         }
     });
 }
@@ -408,7 +533,8 @@ function selectFaoliyat(type) {
     });
 
     updateStep4UI(type);
-    updateAnalysis(); // Faoliyat turiga ko'ra marginlar o'zgaradi
+    updateAnalysis();
+    updateStatusPanel();
 }
 
 function updateStep4UI(type) {

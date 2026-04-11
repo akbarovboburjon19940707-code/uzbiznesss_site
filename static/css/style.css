@@ -564,6 +564,199 @@ body.preview-mode .glass-card.sidebar-contact-card {
 
 .hidden { display: none !important; }
 
+/* ══════════════════════════════════════════════════════════
+   MULKCHILIK SHAKLI KARTALAR
+   ══════════════════════════════════════════════════════════ */
+.mulk-type-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.mulk-type-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 2px solid #e2e8f0;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: var(--tr);
+  background: #fff;
+}
+
+.mulk-type-card:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+}
+
+.mulk-type-card.active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.mulk-emoji {
+  font-size: 1.6rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.mulk-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mulk-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.mulk-desc {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   STIR INPUT (Inline search style)
+   ══════════════════════════════════════════════════════════ */
+.stir-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 2px solid #e2e8f0;
+  border-radius: var(--r-md);
+  background: #f8fafc;
+  overflow: hidden;
+  transition: var(--tr);
+}
+
+.stir-input-container:focus-within {
+  border-color: #60a5fa;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.08);
+}
+
+.stir-input-container.stir-success {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+}
+
+.stir-search-icon {
+  padding: 0 0 0 14px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.stir-field-input {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-family: 'Outfit', monospace;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 3px;
+  padding: 14px 12px;
+}
+
+.stir-field-input:focus {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.stir-status-box {
+  padding-right: 14px;
+  flex-shrink: 0;
+}
+
+.stir-loader, .stir-found {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.stir-loader { color: #3b82f6; }
+.stir-found { color: #16a34a; }
+
+.mini-spin {
+  width: 16px; height: 16px;
+  border: 2px solid #bfdbfe;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.input-hint {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   MA'LUMOTLAR HOLATI PANEL (Sidebar)
+   ══════════════════════════════════════════════════════════ */
+.status-panel .status-checklist {
+  gap: 8px;
+}
+
+.status-item {
+  position: relative;
+  padding: 10px 12px !important;
+  background: #f8fafc !important;
+  border-left: 3px solid #e2e8f0 !important;
+  border-radius: 0 8px 8px 0 !important;
+  transition: var(--tr);
+}
+
+.status-item.completed {
+  border-left-color: #22c55e !important;
+  background: #f0fdf4 !important;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  flex-shrink: 0;
+  transition: var(--tr);
+}
+
+.status-item.completed .status-dot {
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+}
+
+.status-val {
+  font-size: 0.75rem !important;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE: Mulk Cards
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+  .mulk-type-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Scrollbar Modern */
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: #f1f5f9; }

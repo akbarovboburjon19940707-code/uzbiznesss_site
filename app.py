@@ -87,8 +87,8 @@ def landing():
 
 @app.route("/register")
 def register():
-    """Korxona ma'lumotlari kiritish formasi — biznes reja yaratishning 1-bosqichi."""
-    return render_template("register.html")
+    """Korxona ma'lumotlari endi dashboard Step 1 da — redirect."""
+    return redirect(url_for('dashboard'))
 
 
 @app.route("/dashboard")
