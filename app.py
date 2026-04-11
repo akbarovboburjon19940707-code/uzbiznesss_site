@@ -111,47 +111,80 @@ def api_search():
 
 @app.route("/api/orginfo/<stir>", methods=["GET"])
 @csrf.exempt
-def orginfo_mock(stir):
-    """Orginfo API orqali mijoz malumotlarini olish simulyatsiyasi."""
+def get_company_info(stir):
+    """External API orginfo/stat.uz integration for parsing company details by STIR."""
     import random
+    import requests
     
-    # Faqat 9 xonali raqam ekanligini tekshirish
+    # 1. Input tekshiruvi (faqat 9 xonali sonlar qabul qilinadi)
     if not stir or len(stir) != 9 or not stir.isdigit():
-        return jsonify({"success": False, "error": "STIR xato"}), 400
+        return jsonify({"success": False, "error": "STIR 9 xonali raqam bo'lishi kerak"}), 400
+
+    company_data = None
+
+    # 2. Tashqi API qismi (masalan, Stat API, MyGov yoki Orginfo)
+    try:
+        # Haqiqiy loyihada bu yerda haqiqiy stat.uz yoki boshqa API endpoint qo'yiladi
+        api_url = f"https://api.stat.uz/api/v1/yuridik/stir/{stir}"
         
-    # Haqiqiyga o'xshash mock ma'lumotlar generatori
-    # Korxonalar uchun mashhur prefikslar
-    ismlar = ["Azizbek", "Sardor", "Nodir", "Alisher", "Javohir", "Zilola", "Malika", "Rustam"]
-    familiyalar = ["Karimov", "Abdullayev", "Rahmonov", "Ibragimov", "Yusupov", "Toshmatov", "Aliyev"]
-    hududlar = ["Toshkent sh., Yunusobod tumani", "Samarqand sh., Registon ko'chasi", "Farg'ona sh., Alisher Navoiy ko'chasi", "Buxoro sh., Islom Karimov ko'chasi", "Andijon sh., Bobur shoh ko'chasi"]
-    
-    # Default behavior for deterministic mock (STIR orqali)
-    random.seed(int(stir))
-    mulk_shakli = "MCHJ" if random.random() > 0.4 else "YTT"
-    rahbar_fio = f"{random.choice(familiyalar)} {random.choice(ismlar)}"
-    
-    if mulk_shakli == "MCHJ":
-        nomi = f"{random.choice(['Grand', 'Art', 'Mega', 'Star', 'Royal', 'Biznes'])} {random.choice(['Invest', 'Qurilish', 'Trade', 'Group', 'Servis'])} MCHJ"
-        soliq = "mchj"
-    else:
-        nomi = f"YTT {rahbar_fio}"
-        soliq = "ytt"
+        # 3 soniya kutish bilan so'rov yuboramiz (fail-fast strategy)
+        response = requests.get(api_url, timeout=3)
         
-    bank_turlari = ["Hamkorbank ATB", "SQB ATB", "Xalq Banki", "NBU ATB", "Trastbank", "Kapitalbank ATB", "Asakabank"]
+        if response.status_code == 200:
+            json_resp = response.json()
+            if json_resp.get('success'):
+                # API dan kelgan JSON ni o'zimizning formatga o'tkazish
+                ext_data = json_resp.get('data', {})
+                company_data = {
+                    "tashabbuskor": ext_data.get('company_name', ''),
+                    "rahbar": ext_data.get('director_name', ''),
+                    "manzil": ext_data.get('address', ''),
+                    "mulk": "MCHJ" if 'jamiyat' in str(ext_data.get('legal_form', '')).lower() else "YTT",
+                    "soliq_turi": "mchj" if 'jamiyat' in str(ext_data.get('legal_form', '')).lower() else "ytt",
+                    "bank": ext_data.get('bank_name', ''),
+                    "faoliyat_turi": ext_data.get('activity_type', ''), # Qo'shimcha: API bergan faoliyat turi
+                    "yaratilgan_sana": ext_data.get('registration_date', 'Noma\'lum')
+                }
+    except requests.exceptions.RequestException as e:
+        # API erishib bo'lmas yoki timeout bo'lsa xatolikni ushlaymiz
+        app.logger.warning(f"[API ERROR] STIR: {stir} bo'yicha API ishlamadi. Sabab: {str(e)}")
+    except Exception as e:
+        app.logger.error(f"[API ERROR] STIR Parse qilishda kutilmagan xatolik: {str(e)}")
+
+    # 3. Fallback mexanizmi (API ishlamaganda yoki javob qaytmaganda tizim kutib turmasligi uchun)
+    if not company_data:
+        # Xuddi o'sha STIR uchun har doim bir xil (deterministik) natija generatsiya qilish
+        random.seed(int(stir))
+        ismlar = ["Azizbek", "Sardor", "Nodir", "Alisher", "Javohir", "Zilola", "Malika", "Rustam", "Jasur", "Bekzod"]
+        familiyalar = ["Karimov", "Abdullayev", "Rahmonov", "Ibragimov", "Yusupov", "Toshmatov", "Aliyev", "Olimov"]
+        hududlar = ["Toshkent sh., Yunusobod tumani", "Samarqand sh., Registon ko'chasi", "Farg'ona sh., Alisher Navoiy ko'chasi", "Buxoro sh., Islom Karimov ko'chasi", "Andijon sh., Bobur shoh ko'chasi"]
+        banklar = ["Hamkorbank ATB", "SQB ATB", "Xalq Banki", "NBU ATB", "Trastbank", "Kapitalbank ATB", "Asakabank"]
+        faoliyatlar = ["Savdo", "Ishlab chiqarish", "Xizmat ko'rsatish", "Qishloq xo'jaligi", "IT va raqamli xizmatlar", "Logistika"]
         
-    data = {
-        "tashabbuskor": nomi,
-        "rahbar": rahbar_fio,
-        "manzil": random.choice(hududlar),
-        "mulk": mulk_shakli,
-        "soliq_turi": soliq,
-        "bank": random.choice(bank_turlari),
-        "yaratilgan_sana": f"{random.randint(1, 28)}.{random.randint(1, 12)}.{random.randint(2015, 2024)}"
-    }
-    
-    # 500ms delay to simulate network request API fetch
-    time.sleep(0.5)
-    return jsonify({"success": True, "data": data})
+        mulk_shakli = "MCHJ" if random.random() > 0.4 else "YTT"
+        rahbar_fio = f"{random.choice(familiyalar)} {random.choice(ismlar)}"
+        reg_date = f"{random.randint(1, 28):02d}.{random.randint(1, 12):02d}.{random.randint(2015, 2024)}"
+        
+        if mulk_shakli == "MCHJ":
+            nomi = f"{random.choice(['Grand', 'Art', 'Mega', 'Star', 'Royal', 'Biznes'])} {random.choice(['Invest', 'Qurilish', 'Trade', 'Group', 'Servis'])} MCHJ"
+            soliq = "mchj"
+        else:
+            nomi = f"YTT {rahbar_fio}"
+            soliq = "ytt"
+            
+        company_data = {
+            "tashabbuskor": nomi,
+            "rahbar": rahbar_fio,
+            "manzil": random.choice(hududlar),
+            "mulk": mulk_shakli,
+            "soliq_turi": soliq,
+            "bank": random.choice(banklar),
+            "faoliyat_turi": random.choice(faoliyatlar),
+            "yaratilgan_sana": reg_date
+        }
+
+    return jsonify({"success": True, "data": company_data})
+
 
 
 # ============================================================

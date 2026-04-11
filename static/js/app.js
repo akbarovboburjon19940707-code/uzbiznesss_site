@@ -38,35 +38,72 @@ function setupOrginfoFetcher() {
     
     stirInput.addEventListener('input', async () => {
         const val = stirInput.value.trim();
+        
+        // 9 xonadan kam/ko'p bo'lsa xato qizil rang
+        if (val.length > 0 && val.length !== 9) {
+            stirInput.style.borderColor = '#ef4444'; 
+            return;
+        } else {
+            stirInput.style.borderColor = '';
+        }
+
         if (val.length === 9) {
             const loader = document.getElementById('org_loader');
             if (loader) loader.style.display = 'block';
+            stirInput.style.opacity = '0.7';
             
             try {
                 const resp = await fetch(`/api/orginfo/${val}`);
                 const res = await resp.json();
                 
-                if (res.success && res.data) {
+                if (resp.ok && res.success && res.data) {
                     const d = res.data;
-                    document.getElementById('tashabbuskor').value = d.tashabbuskor || '';
-                    document.getElementById('fio_input').value = d.rahbar || '';
-                    document.getElementById('manzil_input').value = d.manzil || '';
-                    document.getElementById('bank_input').value = d.bank || '';
                     
+                    // Input maydonlarni avtomatik to'ldirish
+                    if (document.getElementById('tashabbuskor')) document.getElementById('tashabbuskor').value = d.tashabbuskor || '';
+                    if (document.getElementById('fio_input')) document.getElementById('fio_input').value = d.rahbar || '';
+                    if (document.getElementById('manzil_input')) document.getElementById('manzil_input').value = d.manzil || '';
+                    if (document.getElementById('bank_input')) document.getElementById('bank_input').value = d.bank || '';
+                    
+                    // Ro'yxatdan o'tgan sana
+                    const sanaInput = document.getElementById('ro_sana_input');
+                    if (sanaInput) sanaInput.value = d.yaratilgan_sana || '';
+                    
+                    // Mulkchilik shakli
                     const mulkSel = document.getElementById('mulk_select');
                     if (mulkSel && d.mulk) mulkSel.value = d.mulk;
                     
+                    // Soliq turi
                     const soliqSel = document.getElementById('soliq_turi_select');
                     if (soliqSel && d.soliq_turi) soliqSel.value = d.soliq_turi;
+
+                    // Faoliyat turi (faqat UI visual mapping, agar mock jo'natsa)
+                    if (d.faoliyat_turi) {
+                        const typeMap = {
+                            "Savdo": "savdo",
+                            "Ishlab chiqarish": "ishlab_chiqarish",
+                            "Xizmat ko'rsatish": "xizmat",
+                            "Qishloq xo'jaligi": "qishloq_xojaligi"
+                        };
+                        const mappedType = typeMap[d.faoliyat_turi] || 'xizmat';
+                        selectFaoliyat(mappedType);
+                    }
                     
-                    // Flash success effect
-                    stirInput.style.borderColor = 'var(--accent)';
-                    setTimeout(() => stirInput.style.borderColor = '', 1500);
+                    // Flash success effect (Muvaffaqiyatli ma'lumot olinganda Yashil border)
+                    stirInput.style.borderColor = '#10b981';
+                    setTimeout(() => stirInput.style.borderColor = '', 2000);
+                } else {
+                    // Agar API dan xatolik qaytsa (masalan STIR topilmadi)
+                    stirInput.style.borderColor = '#ef4444';
+                    showAlert(res.error || "STIR bo'yicha ma'lumot topilmadi");
                 }
             } catch (e) {
                 console.error("Orginfo fetch error:", e);
+                stirInput.style.borderColor = '#ef4444';
+                showAlert("Tarmoq xatosi yoki API javob bermadi");
             } finally {
                 if (loader) loader.style.display = 'none';
+                stirInput.style.opacity = '1';
             }
         }
     });
