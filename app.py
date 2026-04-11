@@ -8,6 +8,7 @@ Dinamik Word | Preview + To'lov | Professional UI
 from flask import Flask, render_template, request, send_file, jsonify
 from flask_wtf.csrf import CSRFProtect
 import os, time, logging, threading, json
+from datetime import datetime
 from functools import wraps
 from concurrent.futures import ThreadPoolExecutor
 
@@ -17,6 +18,7 @@ from modules.document_engine import create_word_document, convert_to_pdf, merge_
 from modules.file_manager import (create_session, cleanup_session,
                                    cleanup_old_sessions, save_upload)
 from modules.validators import validate_form, safe_int
+from modules.filename_generator import generate_filename
 from modules.business_categories import (
     get_categories_for_frontend, search_plans, get_faoliyat_turi,
     FAOLIYAT_TURLARI, KATEGORIYALAR
@@ -334,17 +336,27 @@ def save():
             "xulosa": xulosa_text
         })
 
-        # 6. Word yaratish + Dinamik jadvallar qo'shish
-        word_path = os.path.join(session_dir, "biznes_reja.docx")
+        # 6. Professional fayl nomi generatsiya qilish
+        pro_filename = generate_filename(
+            loyiha_nomi=request.form.get("loyiha_nomi", "loyiha"),
+            yil=safe_int(request.form.get("yil"), datetime.now().year),
+            faoliyat_turi=request.form.get("faoliyat_turi"),
+            tashabbuskor=request.form.get("tashabbuskor"),
+            format="docx"
+        )
+        pro_pdf_name = pro_filename.replace(".docx", ".pdf")
+
+        # 7. Word yaratish + Dinamik jadvallar qo'shish
+        word_path = os.path.join(session_dir, pro_filename)
         create_word_document(WORD_TEMPLATE, word_path, ai_context, uploaded_files, model=model)
 
         # 7. PDF yoki Word qaytarish
         requested_format = request.form.get("format", "pdf")
         
         if requested_format == "word":
-            logger.info(f"Direct Word download: {sid}")
+            logger.info(f"Direct Word download: {sid} -> {pro_filename}")
             resp = send_file(word_path, as_attachment=True,
-                             download_name="biznes_reja.docx", 
+                             download_name=pro_filename, 
                              mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
             @resp.call_on_close
             def _cleanup_word():
@@ -374,15 +386,15 @@ def save():
             final = os.path.join(session_dir, "final.pdf")
             merge_pdfs(pdfs, final)
 
-            logger.info(f"✅ PDF tayyor (Word+Tables): {sid}")
+            logger.info(f"PDF tayyor (Word+Tables): {sid} -> {pro_pdf_name}")
             resp = send_file(final, as_attachment=True,
-                             download_name="biznes_reja.pdf", mimetype="application/pdf")
+                             download_name=pro_pdf_name, mimetype="application/pdf")
         
         except Exception as e:
-            logger.error(f"⚠️ PDF Xatolik: {e}. Word fallback ishlatilmoqda.")
+            logger.error(f"PDF Xatolik: {e}. Word fallback ishlatilmoqda.")
             # Fallback to Word
             resp = send_file(word_path, as_attachment=True,
-                             download_name="biznes_reja.docx", 
+                             download_name=pro_filename, 
                              mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
 
         @resp.call_on_close
