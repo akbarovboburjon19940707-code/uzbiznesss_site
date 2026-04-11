@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await resp.json();
 
             if (res.success) {
-                currentPaymentId = res.payment_id;
+                currentPaymentId = res.payment?.id || res.payment_id;
                 showStatusSection();
                 document.getElementById('paymentIdDisplay').textContent = currentPaymentId;
                 updateSidebar('submitted', true);
@@ -208,16 +208,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const resp = await fetch(`/api/payment/status/${currentPaymentId}`);
             const res = await resp.json();
 
-            if (res.success && res.payment) {
-                const p = res.payment;
+            if (res.success) {
+                // Backend returns { success, status, admin_note } — NOT res.payment
+                const status = res.status;
+                const adminNote = res.admin_note || '';
 
-                if (p.status === 'approved') {
+                if (status === 'approved') {
                     clearInterval(pollTimer);
                     showApproved();
-                } else if (p.status === 'rejected') {
+                } else if (status === 'rejected') {
                     clearInterval(pollTimer);
-                    showRejected(p.admin_note);
-                } else if (p.status === 'reviewing') {
+                    showRejected(adminNote);
+                } else if (status === 'reviewing' || status === 'pending') {
                     // Still waiting
                     showStatusSection();
                     document.getElementById('paymentIdDisplay').textContent = currentPaymentId;

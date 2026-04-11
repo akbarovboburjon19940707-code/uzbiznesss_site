@@ -9,10 +9,14 @@ import time
 import os
 import json
 import logging
+import threading
 from typing import Dict, Optional, List
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+# Thread safety lock
+_payments_lock = threading.Lock()
 
 # Narx va karta ma'lumotlari
 PLAN_PRICE = 80_000
@@ -34,23 +38,25 @@ os.makedirs(RECEIPTS_DIR, exist_ok=True)
 
 
 def _load_payments() -> Dict[str, dict]:
-    """JSON fayldan to'lovlarni yuklash."""
-    if os.path.exists(PAYMENTS_FILE):
-        try:
-            with open(PAYMENTS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except (json.JSONDecodeError, IOError):
-            return {}
-    return {}
+    """JSON fayldan to'lovlarni yuklash (thread-safe)."""
+    with _payments_lock:
+        if os.path.exists(PAYMENTS_FILE):
+            try:
+                with open(PAYMENTS_FILE, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, IOError):
+                return {}
+        return {}
 
 
 def _save_payments(payments: Dict[str, dict]):
-    """To'lovlarni JSON faylga saqlash."""
-    try:
-        with open(PAYMENTS_FILE, "w", encoding="utf-8") as f:
-            json.dump(payments, f, ensure_ascii=False, indent=2)
-    except IOError as e:
-        logger.error(f"To'lovlarni saqlashda xatolik: {e}")
+    """To'lovlarni JSON faylga saqlash (thread-safe)."""
+    with _payments_lock:
+        try:
+            with open(PAYMENTS_FILE, "w", encoding="utf-8") as f:
+                json.dump(payments, f, ensure_ascii=False, indent=2)
+        except IOError as e:
+            logger.error(f"To'lovlarni saqlashda xatolik: {e}")
 
 
 def create_payment(user_name: str, loyiha_nomi: str = "") -> dict:
@@ -124,7 +130,7 @@ def admin_reject(payment_id: str, reason: str = "") -> dict:
     payment["status"] = "rejected"
     payment["reviewed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     payment["admin_note"] = reason
-    payment["receipt_file"] = None  # Qayta yuklash uchun
+    # receipt_file saqlab qolinadi (audit uchun)
 
     payments[payment_id] = payment
     _save_payments(payments)

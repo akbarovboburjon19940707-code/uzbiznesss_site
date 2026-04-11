@@ -62,7 +62,7 @@ html { scroll-behavior: smooth; }
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     color: var(--gray-800);
-    background: var(--gray-50);
+    background: #ffffff;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     min-height: 100vh;

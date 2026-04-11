@@ -5,7 +5,7 @@ Biznes Reja Platformasi — Enterprise Edition v2.0
 Annuitet + Differentsial | NPV, IRR, ROI
 Dinamik Word | Preview + To'lov | Professional UI
 """
-from flask import Flask, render_template, request, send_file, jsonify
+from flask import Flask, render_template, request, send_file, jsonify, session, redirect, url_for, send_from_directory
 from flask_wtf.csrf import CSRFProtect
 import os, time, logging, threading, json
 from datetime import datetime
@@ -24,8 +24,9 @@ from modules.business_categories import (
     FAOLIYAT_TURLARI, KATEGORIYALAR
 )
 from modules.payment import (
-    create_payment, verify_payment, get_payment,
-    get_payment_info, PLAN_PRICE
+    create_payment, admin_approve, admin_reject, get_payment,
+    get_all_payments, save_receipt_file, verify_admin_password,
+    submit_receipt, RECEIPTS_DIR, get_payment_card_info
 )
 
 # ============================================================
@@ -94,6 +95,12 @@ def register():
 def dashboard():
     """Biznes reja platformasi — asosiy SaaS dashboard."""
     return render_template("index.html")
+
+
+@app.route("/payment")
+def payment_page():
+    """To'lov sahifasi — alohida to'lov UI."""
+    return render_template("payment.html")
 
 
 # ============================================================
@@ -207,33 +214,97 @@ def get_company_info(stir):
 @csrf.exempt
 def api_payment_info():
     """To'lov ma'lumotlarini qaytaradi."""
-    return jsonify({"success": True, "data": get_payment_info()})
+    return jsonify({"success": True, "data": get_payment_card_info()})
 
 
-@app.route("/api/payment/create", methods=["POST"])
+@app.route("/api/payment/submit", methods=["POST"])
 @csrf.exempt
-def api_payment_create():
-    """Yangi to'lov yaratish."""
+@rate_limit(max_req=10, window=60)
+def api_payment_submit():
+    """To'lov chekini yuklash va to'lov yaratish."""
     try:
-        d = request.get_json()
-        method = d.get("method", "demo")
-        payment = create_payment(method)
-        return jsonify({"success": True, "payment": payment})
+        if 'receipt' not in request.files:
+            return jsonify({"success": False, "error": "Chek fayli yuklanmadi"}), 400
+            
+        file = request.files['receipt']
+        if file.filename == '':
+            return jsonify({"success": False, "error": "Chek fayli tanlanmadi"}), 400
+            
+        user_name = request.form.get("user_name", "Noma'lum foydalanuvchi")
+        loyiha_nomi = request.form.get("loyiha_nomi", "Biznes Reja")
+        
+        # 1. To'lov yozuvini yaratish
+        payment = create_payment(user_name, loyiha_nomi)
+        payment_id = payment["id"]
+        
+        # 2. Faylni yuklash
+        filename = save_receipt_file(payment_id, file)
+        if not filename:
+             return jsonify({"success": False, "error": "Faqat JPG, PNG yoki PDF formatlariga ruxsat berilgan."}), 400
+             
+        # 3. Holatni yangilash
+        res = submit_receipt(payment_id, filename)
+        return jsonify(res)
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 400
+        logger.error(f"To'lov xatolik: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
-@app.route("/api/payment/verify", methods=["POST"])
+@app.route("/api/payment/status/<payment_id>", methods=["GET"])
 @csrf.exempt
-def api_payment_verify():
-    """To'lovni tasdiqlash."""
-    try:
-        d = request.get_json()
-        payment_id = d.get("payment_id", "")
-        result = verify_payment(payment_id)
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 400
+def api_payment_status(payment_id):
+    """Foydalanuvchi to'lov holatini tekshirishi uchun."""
+    payment = get_payment(payment_id)
+    if not payment:
+         return jsonify({"success": False, "error": "To'lov topilmadi"}), 404
+    return jsonify({
+        "success": True, 
+        "status": payment["status"], 
+        "admin_note": payment.get("admin_note", "")
+    })
+
+
+# ============================================================
+# ROUTES — ADMIN PANEL
+# ============================================================
+@app.route("/admin/payments", methods=["GET", "POST"])
+def admin_payments():
+    if request.method == "POST":
+         pwd = request.form.get("password", "")
+         if verify_admin_password(pwd):
+             session["admin_logged_in"] = True
+         else:
+             return render_template("admin_payments.html", require_login=True, error="Noto'g'ri parol!")
+    
+    if not session.get("admin_logged_in"):
+         return render_template("admin_payments.html", require_login=True)
+         
+    payments = get_all_payments()
+    return render_template("admin_payments.html", require_login=False, payments=payments)
+
+@app.route("/admin/logout", methods=["GET"])
+def admin_logout():
+    session.pop("admin_logged_in", None)
+    return redirect(url_for("admin_payments"))
+
+@app.route("/api/admin/approve", methods=["POST"])
+@csrf.exempt
+def api_admin_approve():
+    if not session.get("admin_logged_in"): return jsonify({"success": False, "error": "Unauthorized"}), 401
+    d = request.get_json()
+    return jsonify(admin_approve(d.get("payment_id"), d.get("note", "")))
+
+@app.route("/api/admin/reject", methods=["POST"])
+@csrf.exempt
+def api_admin_reject():
+    if not session.get("admin_logged_in"): return jsonify({"success": False, "error": "Unauthorized"}), 401
+    d = request.get_json()
+    return jsonify(admin_reject(d.get("payment_id"), d.get("note", "")))
+
+@app.route("/receipts/<path:filename>")
+def serve_receipt(filename):
+    if not session.get("admin_logged_in"): return "Unauthorized", 401
+    return send_from_directory(RECEIPTS_DIR, filename)
 
 
 # ============================================================
@@ -339,6 +410,14 @@ def save():
         errors = validate_form(request.form)
         if errors:
             return jsonify({"success": False, "errors": errors}), 400
+
+        # 1.5 To'lov tekshiruvi (Majburiy)
+        payment_id = request.form.get("payment_id")
+        if not payment_id:
+            return jsonify({"success": False, "errors": ["To'lov amalga oshirilmagan yoki payment_id yo'q"]}), 400
+        payment = get_payment(payment_id)
+        if not payment or payment.get("status") != "approved":
+            return jsonify({"success": False, "errors": ["Ushbu hujjat uchun to'lov admin tomonidan tasdiqlanmagan."]}), 403
 
         # 2. Session
         session_dir, sid = create_session()

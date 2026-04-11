@@ -8,7 +8,8 @@ let calcTimeout, analysisTimeout;
 let categoriesData = null;
 let allPlans = [];
 let selectedFaoliyat = '';
-let selectedPaymentMethod = 'demo';
+let currentPaymentId = null;
+let paymentStatusInterval = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     // 1. Kategoriyalarni yuklash
@@ -741,11 +742,95 @@ function setupUploads() {
     });
 }
 
-function selectPayment(method) {
-    selectedPaymentMethod = method;
-    document.querySelectorAll('#paymentMethods .type-card').forEach(c => {
-        c.classList.toggle('active', c.dataset.method === method);
-    });
+let _paymentSubmitBtnText = '';
+
+async function submitPaymentReceipt() {
+    const fileInput = document.getElementById('receipt_file');
+    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+        showAlert("Iltimos, to'lov chekini yuklang!");
+        return;
+    }
+
+    const userName = document.getElementById('fio_input')?.value || "Noma'lum";
+    const loyihaNomi = document.getElementById('loyiha_nomi')?.value || "Biznes Reja";
+
+    const formData = new FormData();
+    formData.append('receipt', fileInput.files[0]);
+    formData.append('user_name', userName);
+    formData.append('loyiha_nomi', loyihaNomi);
+
+    const btn = document.getElementById('submitPaymentBtn');
+    _paymentSubmitBtnText = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner" style="width:20px;height:20px;display:inline-block;vertical-align:middle;margin-right:10px;"></span> Yuborilmoqda...';
+    btn.disabled = true;
+
+    try {
+        const resp = await fetch('/api/payment/submit', {
+            method: 'POST',
+            body: formData
+        });
+        const res = await resp.json();
+
+        if (res.success) {
+            currentPaymentId = res.payment.id;
+            
+            // Switch UI
+            document.getElementById('paymentMethods').classList.add('hidden');
+            document.getElementById('paymentStatusBox').classList.remove('hidden');
+            
+            // Start polling
+            paymentStatusInterval = setInterval(() => checkPaymentStatus(currentPaymentId), 5000);
+        } else {
+            showAlert(res.error || "Chek yuklashda xatolik yuz berdi");
+            btn.innerHTML = _paymentSubmitBtnText;
+            btn.disabled = false;
+        }
+    } catch (e) {
+         showAlert("Tarmoq xatosi. Qaytadan urinib ko'ring.");
+         btn.innerHTML = _paymentSubmitBtnText;
+         btn.disabled = false;
+    }
+}
+
+async function checkPaymentStatus(paymentId) {
+    if (!paymentId) return;
+    try {
+        const resp = await fetch('/api/payment/status/' + paymentId);
+        const res = await resp.json();
+        if (res.success) {
+            const status = res.status;
+            if (status === 'approved') {
+                clearInterval(paymentStatusInterval);
+                document.getElementById('paymentStatusBox').classList.add('hidden');
+                document.getElementById('downloadSection').classList.remove('hidden');
+                
+                // Set hidden input value for the main form
+                const hiddenId = document.getElementById('hidden_payment_id');
+                if (hiddenId) hiddenId.value = paymentId;
+                
+            } else if (status === 'rejected') {
+                clearInterval(paymentStatusInterval);
+                document.getElementById('paymentStatusBox').classList.add('hidden');
+                document.getElementById('paymentRejectedBox').classList.remove('hidden');
+                document.getElementById('rejectReasonTxt').textContent = "Sabab: " + (res.admin_note || "To'lov tasdiqlanmadi.");
+            }
+        }
+    } catch (e) {
+        console.warn("Status poll error", e);
+    }
+}
+
+function resetPaymentForm() {
+    currentPaymentId = null;
+    document.getElementById('receipt_file').value = "";
+    document.getElementById('paymentRejectedBox').classList.add('hidden');
+    document.getElementById('paymentMethods').classList.remove('hidden');
+    
+    const btn = document.getElementById('submitPaymentBtn');
+    if (_paymentSubmitBtnText) {
+        btn.innerHTML = _paymentSubmitBtnText;
+    }
+    btn.disabled = false;
 }
 
 function fmt(n) {
