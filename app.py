@@ -84,6 +84,12 @@ def landing():
     return render_template("landing.html")
 
 
+@app.route("/register")
+def register():
+    """Korxona ma'lumotlari kiritish formasi — biznes reja yaratishning 1-bosqichi."""
+    return render_template("register.html")
+
+
 @app.route("/dashboard")
 def dashboard():
     """Biznes reja platformasi — asosiy SaaS dashboard."""
