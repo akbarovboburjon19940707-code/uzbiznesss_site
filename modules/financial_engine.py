@@ -373,19 +373,25 @@ class FinancialEngine:
             yearly_hajm.append(vol)
             yearly_revenue.append(rev)
 
+        # Yangi 4 ta ustunli gorizontal format
+        headers = ["Mahsulot nomi (xizmat turi)", "Ishlab chiqarish hajmi", "Sotish narxi", "Tushgan daromad (jami)"]
+        
         rows = [
-            ["Maksimal ishlab chiqarish (yillik)", max_hajm] + [""] * (self.MODEL_YEARS - 1),
-            ["Narx (1 birlik uchun)", narx] + [""] * (self.MODEL_YEARS - 1),
-            ["Maksimal yillik tushum", max_revenue] + [""] * (self.MODEL_YEARS - 1),
-            [""] * (self.MODEL_YEARS + 1),
-            ["Quvvat koeffitsienti"] + self.CAPACITIES_STR,
-            ["Ishlab chiqarish hajmi (" + self.olchov + ")"] + yearly_hajm,
-            ["JAMI SOTISH DAROMADLARI"] + yearly_revenue,
+            [f"MAKSIMAL QUVVAT (100%)", max_hajm, narx, max_revenue],
         ]
+        
+        for i in range(self.MODEL_YEARS):
+            rows.append([
+                f"{i+1}-yil reja ({int(self.CAPACITIES[i]*100)}%)",
+                yearly_hajm[i],
+                narx,
+                yearly_revenue[i]
+            ])
+
         return {
             "title": "XIZMAT KO'RSATISH VA SOTISH REJASI",
             "ilova": "6-ILOVA",
-            "headers": ["Ko'rsatkich"] + self.YEAR_LABELS,
+            "headers": headers,
             "rows": rows,
             "data": {
                 "max_hajm": max_hajm,

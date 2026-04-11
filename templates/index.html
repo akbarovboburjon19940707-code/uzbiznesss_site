@@ -422,7 +422,13 @@
                                 </label>
                               </div>
 
-                              <button type="button" class="btn-base btn-primary" style="width:100%; height:60px; font-size:1.2rem" onclick="processPaymentAndDownload()">📥 Yuklab olish</button>
+                              <button type="button" class="btn-base btn-primary" style="width:100%; height:60px; font-size:1.2rem" onclick="processPaymentAndDownload('pdf')">📥 Yuklab olish (PDF)</button>
+                              
+                              <div style="text-align:center; margin-top:15px">
+                                  <a href="javascript:void(0)" onclick="processPaymentAndDownload('word')" style="color:var(--accent); text-decoration:none; font-size:.9rem; opacity:0.8; font-weight:500; border-bottom: 1px dashed var(--accent)">
+                                      📄 Word formatida yuklab olish (tahrirlash uchun)
+                                  </a>
+                              </div>
                         </div>
 
                         <div class="action-group">

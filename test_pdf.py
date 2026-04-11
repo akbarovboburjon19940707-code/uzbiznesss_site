@@ -29,5 +29,26 @@ def test_conversion():
         import traceback
         traceback.print_exc()
 
+Saytda PDF hosil bo'lmasligining bir necha asosiy sabablari bo'lishi mumkin. Hozirgi kod tahlili va o'tkazilgan testlar natijasida quyidagi muammolarni aniqladim:
+
+Muhit farqi (Linux vs Windows): Agar saytni Render, Heroku yoki boshqa Linux serverga joylagan bo'lsangiz, docx2pdf (Microsoft Word orqali ishlashi sababli) u yerda ishlamaydi. Serverda LibreOffice o'rnatilgan bo'lishi shart.
+Kutubxonalar yetishmasligi: requirements.txt faylida PDF yaratish uchun kerakli docx2pdf va pywin32 kutubxonalari ko'rsatilmagan.
+Word bloklanishi: Windows'da bir vaqtning o'zida bir nechta foydalanuvchi PDF so'rasa, Microsoft Word qotib qolishi yoki xatolik berishi mumkin (uni faqat bitta potokda ishlatish kerak).
+Ushbu muammolarni bartaraf etish uchun 
+implementation_plan.md
+ rejasini tayyorladim. Rejani ko'rib chiqib tasdiqlasangiz, tuzatish ishlarini boshlayman.
+
+Sizga savollarim:
+
+Sayt hozir qayerda ishlayapti (o'zingizni kompyuteringizdami yoki serverdami)?
+Agar serverda bo'lsa, u Linuxmi yoki Windows?
+Kompyuteringizda Microsoft Word dasturi o'rnatilganmi?
+Implementation Plan
+1
+test_pdf.py
+Failed to move changes
+failed to checkout worktree changes: main branch has uncommitted changes; please commit or stash your changes before checking out the worktree
+
+
 if __name__ == "__main__":
     test_conversion()

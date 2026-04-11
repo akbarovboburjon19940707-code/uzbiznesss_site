@@ -483,12 +483,15 @@ function hideAlert() {
 }
 
 // Payment/Download glue (Reuse backend call logic)
-async function processPaymentAndDownload() {
+async function processPaymentAndDownload(format = 'pdf') {
     const overlay = document.getElementById('loadingOverlay');
     overlay.classList.add('active');
     
     try {
-        const fd = new FormData(document.getElementById('biznesForm'));
+        const form = document.getElementById('biznesForm');
+        const fd = new FormData(form);
+        fd.append('format', format); // Formatni qo'shish
+
         const resp = await fetch('/save', { method: 'POST', body: fd });
         
         if (resp.ok) {
@@ -496,7 +499,12 @@ async function processPaymentAndDownload() {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url; 
-            a.download = 'biznes_reja.pdf';
+            
+            // Fayl formatini aniqlash
+            const contentType = resp.headers.get('Content-Type');
+            const isWord = contentType && contentType.includes('wordprocessingml');
+            a.download = isWord ? 'biznes_reja.docx' : 'biznes_reja.pdf';
+            
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);

@@ -338,38 +338,52 @@ def save():
         word_path = os.path.join(session_dir, "biznes_reja.docx")
         create_word_document(WORD_TEMPLATE, word_path, ai_context, uploaded_files, model=model)
 
-        # 7. PDF konvertatsiya
-        word_pdf = convert_to_pdf(word_path, os.path.join(session_dir, "word.pdf"))
+        # 7. PDF yoki Word qaytarish
+        requested_format = request.form.get("format", "pdf")
         
-        pdfs = [p for p in [word_pdf] if p]
+        if requested_format == "word":
+            logger.info(f"Direct Word download: {sid}")
+            resp = send_file(word_path, as_attachment=True,
+                             download_name="biznes_reja.docx", 
+                             mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+            @resp.call_on_close
+            def _cleanup_word():
+                cleanup_session(session_dir)
+            return resp
+
+        # PDF logikasi
+        try:
+            word_pdf = convert_to_pdf(word_path, os.path.join(session_dir, "word.pdf"))
+            pdfs = [p for p in [word_pdf] if p]
+            
+            # Qo'shimcha hujjatlarni qo'shish
+            if 'extra_doc' in uploaded_files:
+                extra_path = uploaded_files['extra_doc']
+                ext = os.path.splitext(extra_path)[1].lower()
+                if ext == '.pdf':
+                    pdfs.append(extra_path)
+                elif ext in ['.doc', '.docx']:
+                    extra_pdf = convert_to_pdf(extra_path, os.path.join(session_dir, "extra.pdf"))
+                    if extra_pdf:
+                        pdfs.append(extra_pdf)
+
+            if not pdfs:
+                raise Exception("PDF generatsiya qilib bo'lmadi")
+
+            # 8. Birlashtirish
+            final = os.path.join(session_dir, "final.pdf")
+            merge_pdfs(pdfs, final)
+
+            logger.info(f"✅ PDF tayyor (Word+Tables): {sid}")
+            resp = send_file(final, as_attachment=True,
+                             download_name="biznes_reja.pdf", mimetype="application/pdf")
         
-        # Qo'shimcha hujjatlarni qo'shish
-        if 'extra_doc' in uploaded_files:
-            extra_path = uploaded_files['extra_doc']
-            ext = os.path.splitext(extra_path)[1].lower()
-            if ext == '.pdf':
-                pdfs.append(extra_path)
-            elif ext in ['.doc', '.docx']:
-                extra_pdf = convert_to_pdf(extra_path, os.path.join(session_dir, "extra.pdf"))
-                if extra_pdf:
-                    pdfs.append(extra_pdf)
-
-        if not pdfs:
-            err_msg = "PDF yaratib bo'lmadi. "
-            if os.name != 'nt':
-                err_msg += "Serverda LibreOffice o'rnatilmagan bo'lishi mumkin."
-            else:
-                err_msg += "Microsoft Word bilan bog'liq muammo yuz berdi."
-            return jsonify({"success": False, "errors": [err_msg]}), 500
-
-        # 8. Birlashtirish
-        final = os.path.join(session_dir, "final.pdf")
-        merge_pdfs(pdfs, final)
-
-        logger.info(f"✅ PDF tayyor (Word+Tables): {sid}")
-        
-        resp = send_file(final, as_attachment=True,
-                         download_name="biznes_reja.pdf", mimetype="application/pdf")
+        except Exception as e:
+            logger.error(f"⚠️ PDF Xatolik: {e}. Word fallback ishlatilmoqda.")
+            # Fallback to Word
+            resp = send_file(word_path, as_attachment=True,
+                             download_name="biznes_reja.docx", 
+                             mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
 
         @resp.call_on_close
         def _cleanup():
