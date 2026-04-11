@@ -392,14 +392,13 @@
                         </div>
 
                         <div id="previewContent" class="preview-container">
-                             <!-- AI Dashboard Content -->
+                             <!-- Professional Document Preview -->
                         </div>
 
                         <div id="paymentSection" class="payment-section hidden">
-                             <!-- To'lov integratsiyasi -->
                              <div class="payment-header">
-                                <h3>Hujjat Tayyor!</h3>
-                                <div class="payment-price">80 000 so'm</div>
+                                <h3 style="font-size:1.3rem; font-weight:800; margin-bottom:6px">Hujjat Tayyor!</h3>
+                                <div class="payment-price" style="font-size:1.8rem; font-weight:900; font-family:'Outfit',sans-serif">80 000 so'm</div>
                              </div>
                              <div class="type-grid" id="paymentMethods" style="margin:20px 0">
                                 <div class="type-card active" data-method="demo" onclick="selectPayment('demo')">
@@ -415,9 +414,9 @@
                                     <span class="name">Payme</span>
                                 </div>
                              </div>
-                             <div style="margin: 20px 0; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05)">
-                                <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer; font-size:.9rem; color:#cbd5e1">
-                                    <input type="checkbox" name="tasdiqlash" value="1" style="width:20px; height:20px; accent-color:var(--accent); margin-top:3px" checked>
+                             <div style="margin: 20px 0; padding: 15px; background: var(--doc-bg, rgba(255,255,255,0.03)); border-radius: 12px; border: 1px solid var(--doc-border, rgba(255,255,255,0.05))">
+                                <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer; font-size:.9rem; color:var(--doc-text-secondary, #cbd5e1)">
+                                    <input type="checkbox" name="tasdiqlash" value="1" style="width:20px; height:20px; accent-color:var(--doc-accent, var(--accent)); margin-top:3px" checked>
                                     <span>Loyiha ma'lumotlarining to'g'riligini va taqdim etilgan hisob-kitoblar bilan to'liq tanishganimni tasdiqlayman.</span>
                                 </label>
                               </div>
@@ -425,7 +424,7 @@
                               <button type="button" class="btn-base btn-primary" style="width:100%; height:60px; font-size:1.2rem" onclick="processPaymentAndDownload('pdf')">📥 Yuklab olish (PDF)</button>
                               
                               <div style="text-align:center; margin-top:15px">
-                                  <a href="javascript:void(0)" onclick="processPaymentAndDownload('word')" style="color:var(--accent); text-decoration:none; font-size:.9rem; opacity:0.8; font-weight:500; border-bottom: 1px dashed var(--accent)">
+                                  <a href="javascript:void(0)" onclick="processPaymentAndDownload('word')" style="color:var(--doc-accent, var(--accent)); text-decoration:none; font-size:.9rem; opacity:0.8; font-weight:500; border-bottom: 1px dashed var(--doc-accent, var(--accent))">
                                       📄 Word formatida yuklab olish (tahrirlash uchun)
                                   </a>
                               </div>
@@ -470,7 +469,7 @@
                     <p style="font-size:11px; color:#64748b; margin-top:10px; text-align:center">Ma'lumotlar o'zgarganda avtomatik yangilanadi</p>
                 </div>
 
-                <div class="glass-card" style="margin-top:20px; padding:20px; text-align:center">
+                <div class="glass-card sidebar-contact-card" style="margin-top:20px; padding:20px; text-align:center">
                     <p style="font-size:.8rem; color:#94a3b8">Savollaringiz bormi?</p>
                     <a href="https://t.me/BoBuRo7o7" target="_blank" style="color:var(--accent); font-weight:700; text-decoration:none; font-size:.9rem; display:block; margin-bottom:5px">Biz bilan bog'laning</a>
                     <a href="tel:+998947214242" style="color:white; font-size:.85rem; text-decoration:none; opacity:0.8; display:block; margin-bottom:15px">+998 94 721 42 42</a>

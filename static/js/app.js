@@ -129,6 +129,13 @@ function goToStep(s) {
     const bar = document.getElementById('scoreBar');
     if (bar) bar.style.width = progress + '%';
 
+    // 4. Preview mode — Step 8 da light theme
+    if (s === 8) {
+        document.body.classList.add('preview-mode');
+    } else {
+        document.body.classList.remove('preview-mode');
+    }
+
     currentStep = s;
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -402,42 +409,137 @@ async function generatePreview() {
 
 function renderPreviewUI(data, container) {
     const ctx = data.context;
+    const ind = data.indicators;
+    const npvPositive = ind.npv > 0;
+    const roiPositive = ind.roi > 0;
+
+    // Format helpers
+    const fmtNum = (n) => {
+        if (n === null || n === undefined || isNaN(n)) return '0';
+        return Math.round(n).toLocaleString('uz-UZ');
+    };
+
     let html = `
-        <div class="glass-card" style="margin-bottom:30px; background:rgba(255,255,255,0.02)">
-            <h3 style="color:var(--accent); font-size:1.1rem; margin-bottom:15px">📋 Loyiha Pasporti</h3>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; font-size:0.85rem">
-                <div><strong style="color:var(--primary)">Loyiha:</strong> ${ctx.loyiha_nomi}</div>
-                <div><strong style="color:var(--primary)">Tashabbuskor:</strong> ${ctx.tashabbuskor}</div>
-                <div><strong style="color:var(--primary)">Loyiha Qiymati:</strong> ${fmt(ctx.loyiha_qiymati)}</div>
-                <div><strong style="color:var(--primary)">O'z mablag'i:</strong> ${fmt(ctx.oz_mablag)}</div>
-                <div><strong style="color:var(--primary)">Kredit:</strong> ${fmt(ctx.kredit)}</div>
-                <div><strong style="color:var(--primary)">NPV (Sof foyda):</strong> ${fmt(data.indicators.npv)}</div>
+    <div class="doc-preview">
+      <div class="doc-page">
+
+        <!-- Document Header -->
+        <div class="doc-header">
+          <div class="doc-header-top">
+            <div class="doc-badge">
+              <span class="doc-badge-icon"></span>
+              Biznes Reja
             </div>
+            <div class="doc-status">
+              <span class="doc-status-dot"></span>
+              Tahlil yakunlandi
+            </div>
+          </div>
+          <h1 class="doc-title">${ctx.loyiha_nomi || 'Biznes loyiha'}</h1>
+          <p class="doc-subtitle">${ctx.tashabbuskor || ''} &mdash; ${ctx.yil || new Date().getFullYear()}-yil</p>
         </div>
+
+        <!-- Loyiha Pasporti -->
+        <div class="doc-meta-section">
+          <div class="doc-meta-label">Loyiha pasporti</div>
+          <div class="doc-meta-grid">
+            <div class="doc-meta-item">
+              <span class="doc-meta-key">Loyiha nomi</span>
+              <span class="doc-meta-val">${ctx.loyiha_nomi || '—'}</span>
+            </div>
+            <div class="doc-meta-item">
+              <span class="doc-meta-key">Tashabbuskor</span>
+              <span class="doc-meta-val">${ctx.tashabbuskor || '—'}</span>
+            </div>
+            <div class="doc-meta-item">
+              <span class="doc-meta-key">Loyiha qiymati</span>
+              <span class="doc-meta-val">${fmtNum(ctx.loyiha_qiymati)} so'm</span>
+            </div>
+            <div class="doc-meta-item">
+              <span class="doc-meta-key">O'z mablag'i</span>
+              <span class="doc-meta-val">${fmtNum(ctx.oz_mablag)} so'm</span>
+            </div>
+            <div class="doc-meta-item">
+              <span class="doc-meta-key">Kredit summasi</span>
+              <span class="doc-meta-val">${fmtNum(ctx.kredit)} so'm</span>
+            </div>
+            <div class="doc-meta-item">
+              <span class="doc-meta-key">Faoliyat turi</span>
+              <span class="doc-meta-val">${data.faoliyat_nomi || ctx.faoliyat_turi || '—'}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI ko'rsatkichlari -->
+        <div class="doc-kpi-section">
+          <div class="doc-meta-label">Moliyaviy ko'rsatkichlar</div>
+          <div class="doc-kpi-grid">
+            <div class="doc-kpi-card ${npvPositive ? 'positive' : 'negative'}">
+              <div class="doc-kpi-label">NPV (Sof daromad)</div>
+              <div class="doc-kpi-value">${fmtNum(ind.npv)}</div>
+              <div class="doc-kpi-sub">so'm</div>
+            </div>
+            <div class="doc-kpi-card ${roiPositive ? 'positive' : 'negative'}">
+              <div class="doc-kpi-label">ROI (Rentabellik)</div>
+              <div class="doc-kpi-value">${(ind.roi || 0).toFixed(1)}%</div>
+              <div class="doc-kpi-sub">${roiPositive ? 'Samarali' : 'Samarasiz'}</div>
+            </div>
+            <div class="doc-kpi-card ${npvPositive ? 'positive' : ''}">
+              <div class="doc-kpi-label">IRR</div>
+              <div class="doc-kpi-value">${ind.irr ? (ind.irr).toFixed(1) + '%' : '—'}</div>
+              <div class="doc-kpi-sub">Ichki daromadlilik</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Moliyaviy jadvallar -->
+        <div class="doc-tables-section">
+          <div class="doc-meta-label">Moliyaviy jadvallar</div>
     `;
 
-    // Professional Tables Preview for ALL tables
-    data.tables.forEach(tbl => {
+    // Professional Document Tables
+    data.tables.forEach((tbl, idx) => {
         html += `
-            <div class="preview-table-title">
-                <span class="badge">${tbl.ilova}</span>
-                <h4>${tbl.title}</h4>
+          <div class="doc-table-block" style="--table-index: ${idx}">
+            <div class="doc-table-header">
+              <span class="doc-table-badge">${tbl.ilova}</span>
+              <span class="doc-table-name">${tbl.title}</span>
             </div>
-            <div class="preview-table-wrap">
-                <table class="preview-table">
-                    <thead><tr>${tbl.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-                    <tbody>${tbl.rows.slice(0, 15).map(row => `<tr>${row.map(c => `<td>${typeof c === 'number' ? fmt(c) : c}</td>`).join('')}</tr>`).join('')}</tbody>
-                </table>
+            <div class="doc-table-wrap" style="max-height: 400px; overflow-y: auto">
+              <table class="doc-table">
+                <thead><tr>${tbl.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+                <tbody>${tbl.rows.slice(0, 15).map(row =>
+                    `<tr>${row.map(c => `<td>${typeof c === 'number' ? fmtNum(c) : c}</td>`).join('')}</tr>`
+                ).join('')}</tbody>
+              </table>
             </div>
+          </div>
         `;
     });
 
     html += `
-        <div style="text-align:center; padding:30px; margin-top:20px; border-top:1px solid var(--glass-border)">
-            <p style="font-size:0.9rem; color:#94a3b8">Barcha 12+ professional moliyaviy jadvallar yuklab olinganda to'liq holatda (har bir oy/yil kesimida) taqdim etiladi.</p>
         </div>
+
+        <!-- Footer Note -->
+        <div class="doc-footer-note">
+          <p class="doc-footer-text">
+            <strong>Barcha 12+ professional moliyaviy jadvallar</strong> yuklab olinganda to'liq holatda 
+            (har bir oy/yil kesimida) taqdim etiladi. Ushbu hujjat avtomatik generatsiya qilingan.
+          </p>
+        </div>
+
+      </div>
+    </div>
     `;
+
     container.innerHTML = html;
+
+    // Animate tables sequentially
+    requestAnimationFrame(() => {
+        document.querySelectorAll('.doc-table-block').forEach(el => {
+            el.style.opacity = '1';
+        });
+    });
 }
 
 // ============================================================
@@ -490,7 +592,7 @@ async function processPaymentAndDownload(format = 'pdf') {
     try {
         const form = document.getElementById('biznesForm');
         const fd = new FormData(form);
-        fd.append('format', format); // Formatni qo'shish
+        fd.append('format', format);
 
         const resp = await fetch('/save', { method: 'POST', body: fd });
         
@@ -500,11 +602,25 @@ async function processPaymentAndDownload(format = 'pdf') {
             const a = document.createElement('a');
             a.href = url; 
             
-            // Fayl formatini aniqlash
-            const contentType = resp.headers.get('Content-Type');
-            const isWord = contentType && contentType.includes('wordprocessingml');
-            a.download = isWord ? 'biznes_reja.docx' : 'biznes_reja.pdf';
+            // Professional fayl nomini serverdan olish
+            let filename = null;
+            const disposition = resp.headers.get('Content-Disposition');
+            if (disposition) {
+                // filename*=UTF-8''encoded_name yoki filename="name" formatlarini qidirish
+                const utf8Match = disposition.match(/filename\*=UTF-8''(.+?)(?:;|$)/i);
+                const plainMatch = disposition.match(/filename="?([^"\n;]+)"?/i);
+                if (utf8Match) filename = decodeURIComponent(utf8Match[1]);
+                else if (plainMatch) filename = plainMatch[1].trim();
+            }
             
+            // Fallback: Content-Type dan aniqlash
+            if (!filename) {
+                const contentType = resp.headers.get('Content-Type');
+                const isWord = contentType && contentType.includes('wordprocessingml');
+                filename = isWord ? 'biznes_reja.docx' : 'biznes_reja.pdf';
+            }
+            
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
