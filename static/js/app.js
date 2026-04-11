@@ -179,37 +179,185 @@ function setupAutocomplete() {
     const dropdown = document.getElementById('autocompleteDropdown');
     if (!input || !dropdown) return;
 
-    input.addEventListener('input', () => {
-        const query = input.value.trim().toLowerCase();
-        if (query.length < 2) { dropdown.classList.remove('show'); return; }
+    let acHighlight = -1;      // Hozirgi tanlangan element indeksi
+    let acResults = [];        // Hozirgi qidiruv natijalari
+    let acDebounce = null;     // Debounce timer
 
-        const results = allPlans.filter(p => p.nomi.toLowerCase().includes(query)).slice(0, 15);
-        
-        if (results.length === 0) {
+    // ---- Dropdown ochish/yopish ----
+    function openDropdown() {
+        dropdown.classList.add('show');
+    }
+
+    function closeDropdown() {
+        dropdown.classList.remove('show');
+        acHighlight = -1;
+        clearHighlight();
+    }
+
+    function clearHighlight() {
+        dropdown.querySelectorAll('.autocomplete-item').forEach(el => {
+            el.classList.remove('ac-active');
+        });
+    }
+
+    function setHighlight(index) {
+        const items = dropdown.querySelectorAll('.autocomplete-item');
+        if (items.length === 0) return;
+
+        clearHighlight();
+        acHighlight = Math.max(0, Math.min(index, items.length - 1));
+        const active = items[acHighlight];
+        active.classList.add('ac-active');
+
+        // Scroll into view (agar ko'rinmasa)
+        active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    // ---- Rendering ----
+    function renderResults(query) {
+        acResults = allPlans
+            .filter(p => p.nomi.toLowerCase().includes(query))
+            .slice(0, 20);
+
+        acHighlight = -1;
+
+        if (acResults.length === 0) {
             dropdown.innerHTML = '<div class="autocomplete-no-result">Natija topilmadi</div>';
         } else {
-            dropdown.innerHTML = results.map(r => `
-                <div class="autocomplete-item" onclick="pickPlan('${r.nomi}', '${r.faoliyat_turi}')">
-                    <div style="flex:1">
-                        <div class="ac-name">${r.nomi}</div>
-                        <div class="ac-cat">${r.kategoriya}</div>
+            dropdown.innerHTML = acResults.map((r, i) => `
+                <div class="autocomplete-item" data-index="${i}">
+                    <div class="ac-content">
+                        <div class="ac-name">${highlightMatch(r.nomi, query)}</div>
+                        <div class="ac-cat">${r.kategoriya || ''}</div>
                     </div>
+                    <div class="ac-type-badge">${getTypeEmoji(r.faoliyat_turi)}</div>
                 </div>
             `).join('');
         }
-        dropdown.classList.add('show');
+        openDropdown();
+    }
+
+    // Qidiruv so'zini highlight qilish
+    function highlightMatch(text, query) {
+        if (!query) return text;
+        const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+        return text.replace(regex, '<mark class="ac-highlight">$1</mark>');
+    }
+
+    function escapeRegex(str) {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function getTypeEmoji(type) {
+        const map = {
+            'ishlab_chiqarish': '🏭',
+            'qishloq_xojaligi': '🌾',
+            'savdo': '🏪',
+            'xizmat': '🍽'
+        };
+        return map[type] || '';
+    }
+
+    // ---- Elementni tanlash ----
+    function selectItem(index) {
+        if (index < 0 || index >= acResults.length) return;
+        const item = acResults[index];
+        input.value = item.nomi;
+        selectFaoliyat(item.faoliyat_turi);
+        closeDropdown();
+        input.blur(); // Fokusni olib tashlash (dropdown qayta ochilmasligi uchun)
+    }
+
+    // ---- INPUT hodisalari ----
+    input.addEventListener('input', () => {
+        clearTimeout(acDebounce);
+        acDebounce = setTimeout(() => {
+            const query = input.value.trim().toLowerCase();
+            if (query.length < 2) {
+                closeDropdown();
+                return;
+            }
+            renderResults(query);
+        }, 150); // 150ms debounce
     });
 
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('#loyiha_nomi')) dropdown.classList.remove('show');
+    // Fokus bo'lganda ham ochish (agar matn 2+ bo'lsa)
+    input.addEventListener('focus', () => {
+        const query = input.value.trim().toLowerCase();
+        if (query.length >= 2 && acResults.length > 0) {
+            openDropdown();
+        }
     });
-}
 
-function pickPlan(name, type) {
-    const input = document.getElementById('loyiha_nomi');
-    input.value = name;
-    selectFaoliyat(type);
-    document.getElementById('autocompleteDropdown').classList.remove('show');
+    // ---- KEYBOARD navigatsiya ----
+    input.addEventListener('keydown', (e) => {
+        const items = dropdown.querySelectorAll('.autocomplete-item');
+        const isOpen = dropdown.classList.contains('show');
+
+        if (!isOpen) return;
+
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                setHighlight(acHighlight + 1);
+                break;
+
+            case 'ArrowUp':
+                e.preventDefault();
+                if (acHighlight <= 0) {
+                    acHighlight = -1;
+                    clearHighlight();
+                } else {
+                    setHighlight(acHighlight - 1);
+                }
+                break;
+
+            case 'Enter':
+                e.preventDefault();
+                if (acHighlight >= 0 && acHighlight < items.length) {
+                    selectItem(acHighlight);
+                }
+                break;
+
+            case 'Escape':
+                e.preventDefault();
+                closeDropdown();
+                break;
+
+            case 'Tab':
+                closeDropdown();
+                break;
+        }
+    });
+
+    // ---- CLICK: dropdown ichidagi elementni tanlash (Event Delegation) ----
+    dropdown.addEventListener('mousedown', (e) => {
+        // mousedown ishlatamiz (click emas), chunki blur dan oldin ishlaydi
+        e.preventDefault(); // input.blur() ni to'xtatadi
+        const item = e.target.closest('.autocomplete-item');
+        if (item) {
+            const index = parseInt(item.dataset.index, 10);
+            selectItem(index);
+        }
+    });
+
+    // ---- Hover bilan highlight ----
+    dropdown.addEventListener('mousemove', (e) => {
+        const item = e.target.closest('.autocomplete-item');
+        if (item) {
+            const index = parseInt(item.dataset.index, 10);
+            if (index !== acHighlight) {
+                setHighlight(index);
+            }
+        }
+    });
+
+    // ---- Tashqariga bosganda yopish ----
+    document.addEventListener('mousedown', (e) => {
+        if (!e.target.closest('#loyiha_nomi') && !e.target.closest('#autocompleteDropdown')) {
+            closeDropdown();
+        }
+    });
 }
 
 function selectFaoliyat(type) {
