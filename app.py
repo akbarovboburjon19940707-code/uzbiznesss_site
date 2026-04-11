@@ -79,7 +79,14 @@ _cleanup_thread.start()
 # ROUTES — ASOSIY
 # ============================================================
 @app.route("/")
-def index():
+def landing():
+    """Marketing landing page — foydalanuvchilarni platformaga yo'naltiradi."""
+    return render_template("landing.html")
+
+
+@app.route("/dashboard")
+def dashboard():
+    """Biznes reja platformasi — asosiy SaaS dashboard."""
     return render_template("index.html")
 
 
