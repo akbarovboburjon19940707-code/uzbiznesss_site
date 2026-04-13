@@ -156,23 +156,23 @@ def create_word_document(template_path: str, output_path: str, context: dict = N
 
     inserted_ilovalar = []
     
-    para_mappings = [
-        ("1-jadval. loyiha", ["loyiha_qiymati"]),
-        ("5-jadval. shtat", ["shtat_jadvali"]),
-        ("6-jadval. daromad", ["daromad_sxemasi"]),
-        ("7-jadval. ishlab chiqarish", ["foydalanish_xarajatlari", "tannarx"]),
-        ("7-jadval. foydalanish", ["foydalanish_xarajatlari", "tannarx"]),
-        ("8-jadval. kommunikatsiya", ["kommunikatsiya"])
-    ]
+    inserted_ilovalar = []
 
     # Qidirish orqali jadvallarni "X-jadval" matnidan keyin joylashtirish
     for p in doc.paragraphs:
         text = p.text.lower().strip()
         matched_keys = None
-        for marker, keys in para_mappings:
-            if marker in text:
-                matched_keys = keys
-                break
+        
+        if "1-jadval" in text and "loyiha" in text:
+            matched_keys = ["loyiha_qiymati"]
+        elif "5-jadval" in text and "shtat" in text:
+            matched_keys = ["shtat_jadvali"]
+        elif "6-jadval" in text and "daromad" in text:
+            matched_keys = ["daromad_sxemasi"]
+        elif "7-jadval" in text and ("ishlab chiqarish" in text or "foydalanish" in text or "xarajat" in text):
+            matched_keys = ["foydalanish_xarajatlari", "tannarx"]
+        elif "8-jadval" in text and ("kommunikatsiya" in text or "infratuzilma" in text):
+            matched_keys = ["kommunikatsiya"]
                 
         if matched_keys:
             parent = p._element.getparent()
