@@ -437,6 +437,19 @@
 </div>
 
 <script>
+    // Yangilanganda (refresh) scroll qayerda turgan bo'lsa, o'sha joyda qolishi uchun:
+    document.addEventListener("DOMContentLoaded", function() {
+        const scrollpos = sessionStorage.getItem('admin_scrollpos');
+        if (scrollpos) {
+            window.scrollTo(0, parseInt(scrollpos));
+            sessionStorage.removeItem('admin_scrollpos');
+        }
+    });
+
+    window.addEventListener("beforeunload", function() {
+        sessionStorage.setItem('admin_scrollpos', window.scrollY);
+    });
+
     let _action = null, _pid = null;
 
     function openModal(type, pid) {
