@@ -23,6 +23,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const clickUserName = document.getElementById('clickUserName');
     const clickLoadingState = document.getElementById('clickLoadingState');
 
+    // Payme elements
+    const btnPaymePay = document.getElementById('btnPaymePay');
+    const paymeUserName = document.getElementById('paymeUserName');
+    const paymeLoadingState = document.getElementById('paymeLoadingState');
+
     // Payment method tabs
     const methodTabs = document.querySelectorAll('.pay-method-tab:not(.disabled)');
     const tabPanels = {
@@ -341,6 +346,89 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
+
+    // ============================================================
+    // 5.5 PAYME PAYMENT LOGIC (YANGI)
+    // ============================================================
+
+    // Payme name field — enable/disable button
+    if (paymeUserName) {
+        paymeUserName.addEventListener('input', () => {
+            if (btnPaymePay) {
+                btnPaymePay.disabled = !paymeUserName.value.trim();
+            }
+        });
+    }
+
+    // Payme to'lov tugmasi
+    if (btnPaymePay) {
+        btnPaymePay.addEventListener('click', async () => {
+            const userName = paymeUserName ? paymeUserName.value.trim() : '';
+            if (!userName) {
+                alert('Iltimos, ismingizni kiriting');
+                return;
+            }
+
+            // Loading holat
+            btnPaymePay.disabled = true;
+            btnPaymePay.innerHTML = `
+                <div class="mini-spinner"></div>
+                Tayyorlanmoqda...
+            `;
+
+            try {
+                const resp = await fetch('/api/payme/create-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_name: userName,
+                        loyiha_nomi: 'Biznes Reja',
+                    })
+                });
+
+                const data = await resp.json();
+
+                if (data.success && data.payment_url) {
+                    // Loading state ko'rsatish
+                    if (paymeLoadingState) {
+                        paymeLoadingState.classList.remove('hidden');
+                        const infoCards = document.querySelectorAll('.click-info-card');
+                        infoCards.forEach(c => {
+                            if(c.contains(btnPaymePay)) c.style.display = 'none';
+                        });
+                    }
+
+                    // Sidebar yangilash
+                    updateSidebar('submitted', true);
+
+                    // 1 soniyadan keyin redirect
+                    setTimeout(() => {
+                        window.location.href = data.payment_url;
+                    }, 1000);
+
+                } else {
+                    alert(data.error || 'Payme to\'lov yaratishda xatolik yuz berdi');
+                    resetPaymeBtn();
+                }
+            } catch (e) {
+                console.error('Payme payment error:', e);
+                alert('Server bilan bog\'lanishda xatolik');
+                resetPaymeBtn();
+            }
+        });
+    }
+
+    function resetPaymeBtn() {
+        if (!btnPaymePay) return;
+        btnPaymePay.disabled = !paymeUserName?.value?.trim();
+        btnPaymePay.innerHTML = `
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <rect x="2" y="5" width="20" height="14" rx="2"/>
+                <path d="M2 10h20"/>
+            </svg>
+            Payme orqali to'lash — 80 000 so'm
+        `;
+    }
 
     // ============================================================
     // 6. STATUS SECTION (Mavjud — o'zgarmagan)

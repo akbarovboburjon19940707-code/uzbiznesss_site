@@ -7,10 +7,14 @@ Dinamik Word | Preview + To'lov | Professional UI
 """
 from flask import Flask, render_template, request, send_file, jsonify, session, redirect, url_for, send_from_directory
 from flask_wtf.csrf import CSRFProtect
-import os, time, logging, threading, json
+import os, time, logging, threading, json, base64
 from datetime import datetime
 from functools import wraps
 from concurrent.futures import ThreadPoolExecutor
+from dotenv import load_dotenv
+
+# Env file dagi kalitlarni server yurganda xotiraga yuklash
+load_dotenv()
 
 from modules.credit_calculator import hisob_kredit
 from modules.financial_engine import FinancialEngine, safe_float
@@ -458,6 +462,82 @@ def api_secure_download(order_id):
         "payment_id": payment_id,
         "redirect": f"/dashboard?payment_id={payment_id}"
     })
+
+
+# ============================================================
+# ROUTES — PAYME TO'LOV TIZIMI
+# ============================================================
+@app.route("/api/payme/create-payment", methods=["POST"])
+@csrf.exempt
+@rate_limit(max_req=10, window=60)
+def api_payme_create_payment():
+    """Payme to'lov yaratish"""
+    try:
+        d = request.get_json() or {}
+        user_name = d.get("user_name", "Noma'lum")
+        loyiha_nomi = d.get("loyiha_nomi", "Biznes Reja")
+
+        from modules.payment import create_payme_payment
+        payment = create_payme_payment(user_name, loyiha_nomi)
+        order_id = payment["order_id"]
+        amount = payment["amount"]
+
+        base_url = request.host_url.rstrip("/")
+        # Payme dan qaytsa payment statusini tekshirish uchun dashboardga yo'naltiramiz
+        return_url = base64.b64encode(f"{base_url}/dashboard?payment_id={payment['id']}".encode('utf-8')).decode('utf-8')
+
+        from modules.payment_service.payme import payme_provider
+        payment_url = payme_provider.create_payment_url(
+            order_id=order_id,
+            amount=float(amount),
+            return_url=return_url
+        )
+
+        logger.info(f"Payme to'lov yaratildi: order={order_id}, amount={amount}, user={user_name}")
+
+        return jsonify({
+            "success": True,
+            "payment_id": payment["id"],
+            "order_id": order_id,
+            "payment_url": payment_url,
+            "amount": amount,
+        })
+    except Exception as e:
+        logger.error(f"Payme to'lov yaratishda xatolik: {e}", exc_info=True)
+        return jsonify({
+            "success": False,
+            "error": f"To'lov yaratishda xatolik: {str(e)}"
+        }), 500
+
+
+@app.route("/payme/callback", methods=["POST"])
+@csrf.exempt
+def payme_callback():
+    """Payme JSON-RPC callback handler"""
+    data = {}
+    try:
+        data = request.get_json(silent=True) or {}
+        auth_header = request.headers.get("Authorization", "")
+
+        from modules.payment_service.payme import payme_provider
+        response = payme_provider.handle_callback(data, auth_header)
+        
+        # Log response handled inside payme.py provider and logger
+        return jsonify(response)
+
+    except Exception as e:
+        logger.error(f"Payme callback kutilmagan xatolik: {e}", exc_info=True)
+        return jsonify({
+            "error": {
+                "code": -32400,
+                "message": {
+                    "ru": "Internal server error",
+                    "uz": "Ichki server xatoligi",
+                    "en": "Internal server error"
+                }
+            },
+            "id": data.get("id")
+        })
 
 
 # ============================================================

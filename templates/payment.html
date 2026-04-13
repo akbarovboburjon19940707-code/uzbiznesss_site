@@ -102,7 +102,7 @@
                                     <span class="pmt-desc">Avtomatik to'lov</span>
                                 </div>
                             </button>
-                            <button type="button" class="pay-method-tab disabled" data-method="payme" id="tabPayme" disabled>
+                            <button type="button" class="pay-method-tab" data-method="payme" id="tabPayme">
                                 <div class="pmt-icon pmt-icon-payme">
                                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="2" y="5" width="20" height="14" rx="2"/>
@@ -111,9 +111,8 @@
                                 </div>
                                 <div class="pmt-info">
                                     <span class="pmt-name">Payme</span>
-                                    <span class="pmt-desc">Tez kunda</span>
+                                    <span class="pmt-desc">Avtomatik to'lov</span>
                                 </div>
-                                <span class="pmt-badge-soon">Soon</span>
                             </button>
                         </div>
                     </div>
@@ -247,32 +246,79 @@
                         </div>
                     </div>
 
-                    <!-- ===== TAB 3: PAYME (coming soon) ===== -->
+                    <!-- ===== TAB 3: PAYME ===== -->
                     <div class="pay-tab-panel" id="panelPayme">
-                        <div class="form-section">
+                        <div class="form-section" id="section-payme">
                             <div class="section-label">
                                 <span class="section-num" style="background: #e0f2fe; color: #0ea5e9;">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
                                 </span>
                                 <div>
                                     <h2 class="section-title">Payme orqali to'lov</h2>
-                                    <p class="section-desc">Tez kunda qo'shiladi</p>
+                                    <p class="section-desc">Payme to'lov tizimi orqali avtomatik to'lash</p>
                                 </div>
                             </div>
-
-                            <div class="payme-coming-soon">
-                                <div class="pcs-icon">
-                                    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-                                        <circle cx="12" cy="12" r="10"/>
-                                        <polyline points="12 6 12 12 16 14"/>
+                            
+                            <!-- Payme Info Card -->
+                            <div class="click-info-card">
+                                <div class="click-info-icon" style="color: #0ea5e9; background: #e0f2fe;">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <rect x="2" y="5" width="20" height="14" rx="2"/>
+                                        <path d="M2 10h20"/>
                                     </svg>
                                 </div>
-                                <h3>Payme tez kunda qo'shiladi</h3>
-                                <p>Hozircha Click yoki karta orqali to'lashingiz mumkin. Payme integratsiyasi ustida ishlamoqdamiz.</p>
-                                <button type="button" class="btn-back-to-click" onclick="document.getElementById('tabClick').click()">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                                    Click orqali to'lash
-                                </button>
+                                <h3 class="click-info-title">Payme orqali xavfsiz to'lov</h3>
+                                <p class="click-info-desc">
+                                    Payme Checkout sahifasiga yo'naltirilasiz. To'lov tizim tomonidan avtomatik qabul qilinadi.
+                                </p>
+
+                                <div class="click-features">
+                                    <div class="click-feature">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                        <span>Avtomatik tasdiqlash</span>
+                                    </div>
+                                    <div class="click-feature">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                        <span>Xavfsiz to'lov</span>
+                                    </div>
+                                    <div class="click-feature">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                        <span>Tezkor qayta ishlash</span>
+                                    </div>
+                                </div>
+
+                                <div class="data-grid" style="margin-top: 20px;">
+                                    <div class="field-group field-full">
+                                        <label class="field-label" for="paymeUserName">
+                                            Ismingiz
+                                            <span class="field-req">*</span>
+                                        </label>
+                                        <input type="text" id="paymeUserName" class="field-input" placeholder="Masalan: Karimov Azizbek" required>
+                                    </div>
+                                </div>
+
+                                <div class="click-pay-wrap">
+                                    <button type="button" class="btn-click-pay" id="btnPaymePay" style="background: linear-gradient(135deg, #0ea5e9, #0284c7);" disabled>
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                            <rect x="2" y="5" width="20" height="14" rx="2"/>
+                                            <path d="M2 10h20"/>
+                                        </svg>
+                                        Payme orqali to'lash — 80 000 so'm
+                                    </button>
+                                    <p class="click-pay-note">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                        </svg>
+                                        SSL himoyalangan xavfsiz to'lov
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <!-- Payme Loading State -->
+                            <div class="click-loading-state hidden" id="paymeLoadingState">
+                                <div class="cls-spinner" style="border-top-color: #0ea5e9;"></div>
+                                <h3>Payme sahifasiga yo'naltirilmoqda...</h3>
+                                <p>Iltimos, kuting. Siz tez orada Payme Checkout sahifasiga o'tasiz.</p>
                             </div>
                         </div>
                     </div>
