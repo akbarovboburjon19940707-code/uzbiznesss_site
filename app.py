@@ -282,6 +282,7 @@ def admin_payments():
          pwd = request.form.get("password", "")
          if verify_admin_password(pwd):
              session["admin_logged_in"] = True
+             return redirect(url_for("admin_payments"))
          else:
              return render_template("admin_payments.html", require_login=True, error="Noto'g'ri parol!")
     
