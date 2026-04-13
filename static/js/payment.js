@@ -1,9 +1,10 @@
 /* ============================================================
-   Payment Page — JavaScript
+   Payment Page — JavaScript (Click + Card + Payme)
    ============================================================ */
 
 document.addEventListener('DOMContentLoaded', () => {
 
+    // ── Element References ──
     const receiptFile = document.getElementById('receiptFile');
     const uploadZone = document.getElementById('uploadZone');
     const uploadPlaceholder = document.getElementById('uploadPlaceholder');
@@ -17,9 +18,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const copyText = document.getElementById('copyText');
     const payUserName = document.getElementById('payUserName');
 
+    // Click elements
+    const btnClickPay = document.getElementById('btnClickPay');
+    const clickUserName = document.getElementById('clickUserName');
+    const clickLoadingState = document.getElementById('clickLoadingState');
+
+    // Payment method tabs
+    const methodTabs = document.querySelectorAll('.pay-method-tab:not(.disabled)');
+    const tabPanels = {
+        card: document.getElementById('panelCard'),
+        click: document.getElementById('panelClick'),
+        payme: document.getElementById('panelPayme'),
+    };
+
     let selectedFile = null;
     let currentPaymentId = null;
     let pollTimer = null;
+    let currentMethod = 'card'; // Default to'lov usuli
 
     // URL dan payment_id olish
     const params = new URLSearchParams(window.location.search);
@@ -30,55 +45,102 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // ── 1. Copy Card Number ──
-    btnCopyCard.addEventListener('click', () => {
-        const cardNum = '9860040102031362';
-        navigator.clipboard.writeText(cardNum).then(() => {
-            copyText.textContent = 'Nusxalandi!';
-            btnCopyCard.classList.add('copied');
-            setTimeout(() => {
-                copyText.textContent = 'Nusxalash';
-                btnCopyCard.classList.remove('copied');
-            }, 2000);
-        }).catch(() => {
-            // Fallback
-            const ta = document.createElement('textarea');
-            ta.value = cardNum;
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
-            copyText.textContent = 'Nusxalandi!';
-            btnCopyCard.classList.add('copied');
-            setTimeout(() => {
-                copyText.textContent = 'Nusxalash';
-                btnCopyCard.classList.remove('copied');
-            }, 2000);
+    // ============================================================
+    // TO'LOV USULINI TANLASH (TAB SYSTEM)
+    // ============================================================
+    methodTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const method = tab.dataset.method;
+            if (method === currentMethod) return;
+
+            // Tablarni yangilash
+            document.querySelectorAll('.pay-method-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            // Panellarni yangilash
+            Object.values(tabPanels).forEach(panel => {
+                if (panel) panel.classList.remove('active');
+            });
+            if (tabPanels[method]) {
+                tabPanels[method].classList.add('active');
+            }
+
+            currentMethod = method;
+
+            // Receipt section ni ko'rsatish/yashirish
+            const receiptSection = document.getElementById('section-receipt');
+            const statusSection = document.getElementById('section-status');
+            if (receiptSection) {
+                receiptSection.style.display = (method === 'card') ? '' : 'none';
+            }
+            if (statusSection && method !== 'card') {
+                // Status section faqat card uchun (Click o'z sahifasiga redirect qiladi)
+            }
+
+            console.log(`💳 To'lov usuli tanlandi: ${method}`);
         });
     });
 
 
-    // ── 2. File Upload ──
-    receiptFile.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        handleFile(file);
-    });
+    // ============================================================
+    // 1. COPY CARD NUMBER (Mavjud — o'zgarmagan)
+    // ============================================================
+    if (btnCopyCard) {
+        btnCopyCard.addEventListener('click', () => {
+            const cardNum = '9860040102031362';
+            navigator.clipboard.writeText(cardNum).then(() => {
+                copyText.textContent = 'Nusxalandi!';
+                btnCopyCard.classList.add('copied');
+                setTimeout(() => {
+                    copyText.textContent = 'Nusxalash';
+                    btnCopyCard.classList.remove('copied');
+                }, 2000);
+            }).catch(() => {
+                // Fallback
+                const ta = document.createElement('textarea');
+                ta.value = cardNum;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                copyText.textContent = 'Nusxalandi!';
+                btnCopyCard.classList.add('copied');
+                setTimeout(() => {
+                    copyText.textContent = 'Nusxalash';
+                    btnCopyCard.classList.remove('copied');
+                }, 2000);
+            });
+        });
+    }
+
+
+    // ============================================================
+    // 2. FILE UPLOAD (Mavjud — o'zgarmagan)
+    // ============================================================
+    if (receiptFile) {
+        receiptFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            handleFile(file);
+        });
+    }
 
     // Drag & Drop
-    uploadZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadZone.classList.add('dragover');
-    });
-    uploadZone.addEventListener('dragleave', () => {
-        uploadZone.classList.remove('dragover');
-    });
-    uploadZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadZone.classList.remove('dragover');
-        const file = e.dataTransfer.files[0];
-        if (file) handleFile(file);
-    });
+    if (uploadZone) {
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+    }
 
     function handleFile(file) {
         const maxSize = 10 * 1024 * 1024;
@@ -114,69 +176,80 @@ document.addEventListener('DOMContentLoaded', () => {
         updateSidebar('receipt', true);
     }
 
-    btnRemoveFile.addEventListener('click', (e) => {
-        e.stopPropagation();
-        selectedFile = null;
-        receiptFile.value = '';
-        uploadPlaceholder.classList.remove('hidden');
-        uploadPreview.classList.add('hidden');
-        uploadZone.classList.remove('has-file');
-        updateSubmitState();
-        updateSidebar('receipt', false);
-    });
+    if (btnRemoveFile) {
+        btnRemoveFile.addEventListener('click', (e) => {
+            e.stopPropagation();
+            selectedFile = null;
+            receiptFile.value = '';
+            uploadPlaceholder.classList.remove('hidden');
+            uploadPreview.classList.add('hidden');
+            uploadZone.classList.remove('has-file');
+            updateSubmitState();
+            updateSidebar('receipt', false);
+        });
+    }
 
 
-    // ── 3. Name Field ──
-    payUserName.addEventListener('input', () => {
-        updateSubmitState();
-    });
+    // ============================================================
+    // 3. NAME FIELD (Mavjud — o'zgarmagan)
+    // ============================================================
+    if (payUserName) {
+        payUserName.addEventListener('input', () => {
+            updateSubmitState();
+        });
+    }
 
 
-    // ── 4. Submit Payment ──
-    btnSubmitPayment.addEventListener('click', async () => {
-        if (!selectedFile || !payUserName.value.trim()) return;
+    // ============================================================
+    // 4. CARD PAYMENT SUBMIT (Mavjud — o'zgarmagan)
+    // ============================================================
+    if (btnSubmitPayment) {
+        btnSubmitPayment.addEventListener('click', async () => {
+            if (!selectedFile || !payUserName.value.trim()) return;
 
-        btnSubmitPayment.disabled = true;
-        btnSubmitPayment.innerHTML = `
-            <div class="mini-spinner"></div>
-            Yuklanmoqda...
-        `;
+            btnSubmitPayment.disabled = true;
+            btnSubmitPayment.innerHTML = `
+                <div class="mini-spinner"></div>
+                Yuklanmoqda...
+            `;
 
-        try {
-            const formData = new FormData();
-            formData.append('receipt', selectedFile);
-            formData.append('user_name', payUserName.value.trim());
+            try {
+                const formData = new FormData();
+                formData.append('receipt', selectedFile);
+                formData.append('user_name', payUserName.value.trim());
 
-            const resp = await fetch('/api/payment/submit', {
-                method: 'POST',
-                body: formData
-            });
+                const resp = await fetch('/api/payment/submit', {
+                    method: 'POST',
+                    body: formData
+                });
 
-            const res = await resp.json();
+                const res = await resp.json();
 
-            if (res.success) {
-                currentPaymentId = res.payment?.id || res.payment_id;
-                showStatusSection();
-                document.getElementById('paymentIdDisplay').textContent = currentPaymentId;
-                updateSidebar('submitted', true);
+                if (res.success) {
+                    currentPaymentId = res.payment?.id || res.payment_id;
+                    showStatusSection();
+                    document.getElementById('paymentIdDisplay').textContent = currentPaymentId;
+                    updateSidebar('submitted', true);
 
-                // Start polling
-                startPolling();
+                    // Start polling
+                    startPolling();
 
-                // Update URL
-                history.replaceState(null, '', `/payment?payment_id=${currentPaymentId}`);
-            } else {
-                alert(res.error || 'Xatolik yuz berdi');
+                    // Update URL
+                    history.replaceState(null, '', `/payment?payment_id=${currentPaymentId}`);
+                } else {
+                    alert(res.error || 'Xatolik yuz berdi');
+                    resetSubmitBtn();
+                }
+            } catch (e) {
+                console.error('Submit error:', e);
+                alert('Server bilan bog\'lanishda xatolik');
                 resetSubmitBtn();
             }
-        } catch (e) {
-            console.error('Submit error:', e);
-            alert('Server bilan bog\'lanishda xatolik');
-            resetSubmitBtn();
-        }
-    });
+        });
+    }
 
     function resetSubmitBtn() {
+        if (!btnSubmitPayment) return;
         btnSubmitPayment.disabled = false;
         btnSubmitPayment.innerHTML = `
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -188,12 +261,98 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // ── 5. Status Section ──
+    // ============================================================
+    // 5. CLICK PAYMENT LOGIC (YANGI)
+    // ============================================================
+
+    // Click name field — enable/disable button
+    if (clickUserName) {
+        clickUserName.addEventListener('input', () => {
+            if (btnClickPay) {
+                btnClickPay.disabled = !clickUserName.value.trim();
+            }
+        });
+    }
+
+    // Click to'lov tugmasi
+    if (btnClickPay) {
+        btnClickPay.addEventListener('click', async () => {
+            const userName = clickUserName ? clickUserName.value.trim() : '';
+            if (!userName) {
+                alert('Iltimos, ismingizni kiriting');
+                return;
+            }
+
+            // Loading holat
+            btnClickPay.disabled = true;
+            btnClickPay.innerHTML = `
+                <div class="mini-spinner"></div>
+                Tayyorlanmoqda...
+            `;
+
+            try {
+                const resp = await fetch('/api/click/create-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_name: userName,
+                        loyiha_nomi: 'Biznes Reja',
+                    })
+                });
+
+                const data = await resp.json();
+
+                if (data.success && data.payment_url) {
+                    // Loading state ko'rsatish
+                    if (clickLoadingState) {
+                        clickLoadingState.classList.remove('hidden');
+                        const infoCard = document.querySelector('.click-info-card');
+                        if (infoCard) infoCard.style.display = 'none';
+                    }
+
+                    // Sidebar yangilash
+                    updateSidebar('submitted', true);
+
+                    // 1 soniyadan keyin redirect
+                    setTimeout(() => {
+                        window.location.href = data.payment_url;
+                    }, 1000);
+
+                } else {
+                    alert(data.error || 'Click to\'lov yaratishda xatolik yuz berdi');
+                    resetClickBtn();
+                }
+            } catch (e) {
+                console.error('Click payment error:', e);
+                alert('Server bilan bog\'lanishda xatolik');
+                resetClickBtn();
+            }
+        });
+    }
+
+    function resetClickBtn() {
+        if (!btnClickPay) return;
+        btnClickPay.disabled = !clickUserName?.value?.trim();
+        btnClickPay.innerHTML = `
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+            Click orqali to'lash — 80 000 so'm
+        `;
+    }
+
+
+    // ============================================================
+    // 6. STATUS SECTION (Mavjud — o'zgarmagan)
+    // ============================================================
     function showStatusSection() {
         document.getElementById('section-info').style.opacity = '0.5';
         document.getElementById('section-info').style.pointerEvents = 'none';
-        document.getElementById('section-receipt').style.opacity = '0.5';
-        document.getElementById('section-receipt').style.pointerEvents = 'none';
+        const receiptSection = document.getElementById('section-receipt');
+        if (receiptSection) {
+            receiptSection.style.opacity = '0.5';
+            receiptSection.style.pointerEvents = 'none';
+        }
         document.getElementById('section-status').classList.remove('hidden');
         document.getElementById('section-status').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
@@ -209,7 +368,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await resp.json();
 
             if (res.success) {
-                // Backend returns { success, status, admin_note } — NOT res.payment
                 const status = res.status;
                 const adminNote = res.admin_note || '';
 
@@ -220,7 +378,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     clearInterval(pollTimer);
                     showRejected(adminNote);
                 } else if (status === 'reviewing' || status === 'pending') {
-                    // Still waiting
                     showStatusSection();
                     document.getElementById('paymentIdDisplay').textContent = currentPaymentId;
                 }
@@ -251,9 +408,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // ── Helpers ──
+    // ============================================================
+    // HELPERS
+    // ============================================================
     function updateSubmitState() {
-        const ready = selectedFile && payUserName.value.trim().length > 0;
+        if (!btnSubmitPayment) return;
+        const ready = selectedFile && payUserName && payUserName.value.trim().length > 0;
         btnSubmitPayment.disabled = !ready;
     }
 
@@ -261,43 +421,53 @@ document.addEventListener('DOMContentLoaded', () => {
         if (type === 'receipt') {
             const el2 = document.getElementById('pay-check-3');
             const val3 = document.getElementById('receipt-status-val');
-            if (done) {
-                el2.classList.add('completed');
-                val3.textContent = '✓';
-                val3.style.color = 'var(--green-600)';
-                updateProgress(50);
-            } else {
-                el2.classList.remove('completed');
-                val3.textContent = '—';
-                val3.style.color = '';
-                updateProgress(25);
+            if (el2 && val3) {
+                if (done) {
+                    el2.classList.add('completed');
+                    val3.textContent = '✓';
+                    val3.style.color = 'var(--green-600)';
+                    updateProgress(50);
+                } else {
+                    el2.classList.remove('completed');
+                    val3.textContent = '—';
+                    val3.style.color = '';
+                    updateProgress(25);
+                }
             }
         } else if (type === 'submitted') {
             const el = document.getElementById('pay-check-2');
             const val = document.getElementById('pay-status-val');
-            el.classList.add('completed');
-            val.textContent = '✓';
-            val.style.color = 'var(--green-600)';
-            updateProgress(75);
+            if (el && val) {
+                el.classList.add('completed');
+                val.textContent = '✓';
+                val.style.color = 'var(--green-600)';
+                updateProgress(75);
+            }
         } else if (type === 'approved') {
             const el = document.getElementById('pay-check-4');
             const val = document.getElementById('approval-status-val');
-            el.classList.add('completed');
-            val.textContent = 'Tasdiqlandi';
-            val.style.color = 'var(--green-600)';
-            updateProgress(100);
+            if (el && val) {
+                el.classList.add('completed');
+                val.textContent = 'Tasdiqlandi';
+                val.style.color = 'var(--green-600)';
+                updateProgress(100);
+            }
         } else if (type === 'rejected') {
             const el = document.getElementById('pay-check-4');
             const val = document.getElementById('approval-status-val');
-            el.classList.remove('completed');
-            val.textContent = 'Rad etildi';
-            val.style.color = 'var(--red-500)';
+            if (el && val) {
+                el.classList.remove('completed');
+                val.textContent = 'Rad etildi';
+                val.style.color = 'var(--red-500)';
+            }
         }
     }
 
     function updateProgress(pct) {
-        document.getElementById('payProgressBar').style.width = pct + '%';
-        document.getElementById('payProgressPercent').textContent = pct;
+        const bar = document.getElementById('payProgressBar');
+        const label = document.getElementById('payProgressPercent');
+        if (bar) bar.style.width = pct + '%';
+        if (label) label.textContent = pct;
     }
 
     function formatSize(bytes) {
@@ -306,5 +476,5 @@ document.addEventListener('DOMContentLoaded', () => {
         return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     }
 
-    console.log('💳 Payment page loaded');
+    console.log('💳 Payment page loaded (Card + Click + Payme)');
 });

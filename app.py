@@ -26,8 +26,12 @@ from modules.business_categories import (
 from modules.payment import (
     create_payment, admin_approve, admin_reject, get_payment,
     get_all_payments, save_receipt_file, verify_admin_password,
-    submit_receipt, RECEIPTS_DIR, get_payment_card_info
+    submit_receipt, RECEIPTS_DIR, get_payment_card_info,
+    create_click_payment, get_payment_by_order_id,
+    get_payment_by_click_status, PLAN_PRICE
 )
+from modules.payment_service.click import click_provider
+from modules.payment_logger import log_callback, log_error
 
 # ============================================================
 # CONFIG
@@ -306,6 +310,154 @@ def api_admin_reject():
 def serve_receipt(filename):
     if not session.get("admin_logged_in"): return "Unauthorized", 401
     return send_from_directory(RECEIPTS_DIR, filename)
+
+
+# ============================================================
+# ROUTES — CLICK TO'LOV TIZIMI
+# ============================================================
+@app.route("/api/click/create-payment", methods=["POST"])
+@csrf.exempt
+@rate_limit(max_req=10, window=60)
+def api_click_create_payment():
+    """
+    Click to'lov yaratish.
+    Frontend Click tugmasini bosganda chaqiriladi.
+    Yangi order yaratadi va Click payment URL qaytaradi.
+    """
+    try:
+        d = request.get_json() or {}
+        user_name = d.get("user_name", "Noma'lum")
+        loyiha_nomi = d.get("loyiha_nomi", "Biznes Reja")
+
+        # 1. Yangi to'lov yozuvini yaratish
+        payment = create_click_payment(user_name, loyiha_nomi)
+        order_id = payment["order_id"]
+        amount = payment["amount"]
+
+        # 2. Return URL (to'lovdan keyin qaytadigan sahifa)
+        base_url = request.host_url.rstrip("/")
+        return_url = f"{base_url}/click/return?order_id={order_id}"
+
+        # 3. Click payment URL generatsiya
+        payment_url = click_provider.create_payment_url(
+            order_id=order_id,
+            amount=float(amount),
+            return_url=return_url
+        )
+
+        logger.info(f"Click to'lov yaratildi: order={order_id}, "
+                    f"amount={amount}, user={user_name}")
+
+        return jsonify({
+            "success": True,
+            "payment_id": payment["id"],
+            "order_id": order_id,
+            "payment_url": payment_url,
+            "amount": amount,
+        })
+
+    except Exception as e:
+        logger.error(f"Click to'lov yaratishda xatolik: {e}", exc_info=True)
+        return jsonify({
+            "success": False,
+            "error": f"To'lov yaratishda xatolik: {str(e)}"
+        }), 500
+
+
+@app.route("/click/callback", methods=["POST"])
+@csrf.exempt
+def click_callback():
+    """
+    Click Shop API callback endpoint.
+    Click serveri bu URL ga Prepare (action=0) va Complete (action=1) so'rovlarini yuboradi.
+    
+    MUHIM: Bu endpoint Click serveri tomonidan chaqiriladi, foydalanuvchi tomonidan EMAS.
+    CSRF himoyasi o'chirilgan chunki Click serveridan keladi.
+    """
+    try:
+        # Click POST form data yuboradi
+        data = request.form.to_dict()
+
+        if not data:
+            # Fallback: JSON body bo'lishi mumkin
+            data = request.get_json() or {}
+
+        action = data.get("action", "")
+        merchant_trans_id = data.get("merchant_trans_id", "")
+        remote_addr = request.remote_addr
+
+        logger.info(f"Click callback: action={action}, "
+                    f"order={merchant_trans_id}, ip={remote_addr}")
+
+        # Click provider orqali callback ni qayta ishlash
+        response = click_provider.handle_callback(data)
+
+        # Callbackni loglash
+        action_name = "prepare" if str(action) == "0" else (
+            "complete" if str(action) == "1" else "unknown"
+        )
+        log_callback("click", action_name, data, response, remote_addr)
+
+        return jsonify(response)
+
+    except Exception as e:
+        logger.error(f"Click callback xatolik: {e}", exc_info=True)
+        log_error("click", "callback_exception", str(e),
+                  request_data=request.form.to_dict())
+        return jsonify({
+            "error": -6,
+            "error_note": f"Internal server error: {str(e)}"
+        }), 500
+
+
+@app.route("/click/return")
+def click_return():
+    """
+    Click dan qaytgandan keyingi sahifa.
+    Foydalanuvchi Click da to'lov qilgandan keyin shu yerga redirect qilinadi.
+    """
+    order_id = request.args.get("order_id", "")
+    return render_template("click_return.html", order_id=order_id)
+
+
+@app.route("/api/click/status/<order_id>", methods=["GET"])
+@csrf.exempt
+def api_click_status(order_id):
+    """
+    Click to'lov holatini tekshirish.
+    Frontend polling uchun ishlatadi.
+    """
+    result = get_payment_by_click_status(order_id)
+    if not result.get("success"):
+        return jsonify(result), 404
+    return jsonify(result)
+
+
+@app.route("/api/download/<order_id>", methods=["GET"])
+def api_secure_download(order_id):
+    """
+    Xavfsiz download endpoint.
+    Faqat to'lov muvaffaqiyatli bo'lgan buyurtmalar uchun.
+    """
+    payment = get_payment_by_order_id(order_id)
+
+    if not payment:
+        return jsonify({"success": False, "error": "Buyurtma topilmadi"}), 404
+
+    if payment.get("payment_status") != "success":
+        return jsonify({
+            "success": False,
+            "error": "To'lov tasdiqlanmagan. Hujjatni yuklab olish mumkin emas."
+        }), 403
+
+    # Dashboard ga yo'naltirish (hujjat yuklab olish uchun)
+    payment_id = payment.get("id", "")
+    return jsonify({
+        "success": True,
+        "message": "To'lov tasdiqlangan. Dashboard orqali yuklab oling.",
+        "payment_id": payment_id,
+        "redirect": f"/dashboard?payment_id={payment_id}"
+    })
 
 
 # ============================================================

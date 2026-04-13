@@ -3,7 +3,308 @@
    (Extends register.css design system)
    ============================================================ */
 
-/* ── Payment Amount Card ── */
+/* ── Payment Method Selector (Tabs) ── */
+.pay-method-selector {
+    margin-bottom: 24px;
+}
+.pay-method-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+.pay-method-tab {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border: 2px solid var(--gray-100);
+    border-radius: var(--radius-lg);
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-family: 'Inter', sans-serif;
+    position: relative;
+    overflow: hidden;
+}
+.pay-method-tab:hover:not(.disabled) {
+    border-color: var(--blue-300);
+    background: var(--blue-50);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);
+}
+.pay-method-tab.active {
+    border-color: var(--blue-500);
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.12);
+}
+.pay-method-tab.active .pmt-name {
+    color: var(--blue-700);
+}
+.pay-method-tab.disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    background: var(--gray-50);
+}
+.pmt-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--gray-100);
+    color: var(--gray-500);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.25s ease;
+}
+.pay-method-tab.active .pmt-icon {
+    background: var(--blue-500);
+    color: #fff;
+}
+.pmt-icon-click {
+    background: #dbeafe;
+    color: #2563eb;
+}
+.pay-method-tab.active .pmt-icon-click {
+    background: #2563eb;
+    color: #fff;
+}
+.pmt-icon-payme {
+    background: #e0f2fe;
+    color: #0ea5e9;
+}
+.pmt-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.pmt-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gray-800);
+}
+.pmt-desc {
+    font-size: 11px;
+    color: var(--gray-400);
+    font-weight: 500;
+}
+.pmt-badge-soon {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #f59e0b;
+    background: #fef3c7;
+    padding: 2px 8px;
+    border-radius: 100px;
+}
+
+/* ── Tab Panels ── */
+.pay-tab-panel {
+    display: none;
+    animation: tabFadeIn 0.3s ease;
+}
+.pay-tab-panel.active {
+    display: block;
+}
+@keyframes tabFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Click Info Card ── */
+.click-info-card {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border: 1px solid #bfdbfe;
+    border-radius: var(--radius-xl);
+    padding: 36px 28px;
+    text-align: center;
+}
+.click-info-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.25);
+}
+.click-info-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--gray-900);
+    margin-bottom: 8px;
+}
+.click-info-desc {
+    font-size: 14px;
+    color: var(--gray-600);
+    line-height: 1.6;
+    max-width: 380px;
+    margin: 0 auto 20px;
+}
+.click-features {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+.click-feature {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #16a34a;
+}
+.click-feature svg {
+    flex-shrink: 0;
+}
+
+/* ── Click Pay Button ── */
+.click-pay-wrap {
+    margin-top: 24px;
+    text-align: center;
+}
+.btn-click-pay {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 380px;
+    padding: 16px 32px;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    color: #fff;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    border: none;
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+}
+.btn-click-pay:hover:not(:disabled) {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
+}
+.btn-click-pay:active:not(:disabled) {
+    transform: translateY(0);
+}
+.btn-click-pay:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+.click-pay-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--gray-400);
+    font-weight: 500;
+}
+
+/* ── Click Loading State ── */
+.click-loading-state {
+    text-align: center;
+    padding: 48px 24px;
+    animation: tabFadeIn 0.4s ease;
+}
+.click-loading-state h3 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin-bottom: 8px;
+}
+.click-loading-state p {
+    font-size: 14px;
+    color: var(--gray-500);
+}
+.cls-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid #e5e7eb;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 20px;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── Payme Coming Soon ── */
+.payme-coming-soon {
+    text-align: center;
+    padding: 48px 24px;
+    background: var(--gray-50);
+    border-radius: var(--radius-lg);
+    border: 1px dashed var(--gray-200);
+}
+.payme-coming-soon .pcs-icon {
+    color: var(--gray-300);
+    margin-bottom: 16px;
+}
+.payme-coming-soon h3 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--gray-600);
+    margin-bottom: 8px;
+}
+.payme-coming-soon p {
+    font-size: 14px;
+    color: var(--gray-400);
+    max-width: 380px;
+    margin: 0 auto 20px;
+    line-height: 1.6;
+}
+.btn-back-to-click {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+.btn-back-to-click:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    transform: translateY(-1px);
+}
+
+/* ── Mini Spinner (for buttons) ── */
+.mini-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+}
+
+
 .pay-amount-card {
     background: linear-gradient(135deg, #eff6ff, #dbeafe);
     border: 1px solid #bfdbfe;
@@ -698,6 +999,25 @@
     .pr-actions {
         justify-content: flex-start;
     }
+    .pay-method-tabs {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    .pay-method-tab {
+        padding: 12px 14px;
+    }
+    .click-features {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+    .click-info-card {
+        padding: 28px 20px;
+    }
+    .btn-click-pay {
+        font-size: 14px;
+        padding: 14px 24px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -709,4 +1029,10 @@
         padding: 14px;
     }
     .asc-num { font-size: 24px; }
+    .pmt-desc { display: none; }
+    .pmt-icon {
+        width: 34px;
+        height: 34px;
+    }
+    .pmt-name { font-size: 13px; }
 }
