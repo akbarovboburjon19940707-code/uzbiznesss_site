@@ -371,16 +371,18 @@ def _replace_in_paragraph(paragraph, data: dict, images: dict = None):
     # 1. Image Replacement
     if images:
         for img_key, img_path in images.items():
+            if not img_path or not str(img_path).lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')):
+                continue
+            
             placeholder = "{{" + img_key + "}}"
             if placeholder in paragraph.text:
-                for run in paragraph.runs:
-                    if img_key in run.text or "{{" in run.text:
-                        run.text = run.text.replace(placeholder, "")
-                        if placeholder not in paragraph.text: # Tag fully removed or replaced
-                            try:
-                                run.add_picture(img_path, width=Cm(15), height=Cm(9))
-                                break
-                            except: pass
+                # Textni almashtirish qismi - agar run'larga bo'lingan bo'lsa xato bermasligi uchun
+                paragraph.text = paragraph.text.replace(placeholder, "")
+                try:
+                    new_run = paragraph.add_run()
+                    new_run.add_picture(img_path, width=Cm(15), height=Cm(9))
+                except Exception as e:
+                    logger.warning(f"Rasm joylashtirishda xatolik ({img_key}): {e}")
 
     # 2. Text Replacement
     for key, val in data.items():
