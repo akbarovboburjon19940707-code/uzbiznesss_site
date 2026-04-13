@@ -169,7 +169,7 @@ def create_word_document(template_path: str, output_path: str, context: dict = N
                     matched_key = "shtat_jadvali"
                 elif any(x in text for x in ['sotish rejasi', 'quvvatlarni']):
                     matched_key = "daromad_sxemasi"
-                elif any(x in text for x in ['foydalanish xarajatlari', 'umumiy xarajatlar']):
+                elif any(x in text for x in ['foydalanish xarajatlari', 'umumiy xarajatlar', 'xizmat ko‘rsatish xarajatlari', 'xizmat ko\'rsatish xarajatlari', 'ishlab chiqarish va', 'xizmat korsatish xarajatlari']):
                     matched_key = "foydalanish_xarajatlari"
                 if matched_key: break
             if matched_key: break
@@ -182,7 +182,23 @@ def create_word_document(template_path: str, output_path: str, context: dict = N
         t, key = t_tuple
         parent = t._element.getparent()
         if parent is not None:
-            if key in table_map:
+            if key == "foydalanish_xarajatlari":
+                if "foydalanish_xarajatlari" in table_map:
+                    insert_table_after(t._element, table_map["foydalanish_xarajatlari"], doc)
+                if "tannarx" in table_map:
+                    # Oraliqqa Tannarx sarlavhasini text sifatida qo'shamiz
+                    from docx.enum.text import WD_ALIGN_PARAGRAPH
+                    from docx.shared import Pt
+                    new_p = doc.add_paragraph()
+                    new_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    r = new_p.add_run("To'liq yillik xarajatlar (Tannarx)")
+                    r.bold = True
+                    r.font.name = 'Times New Roman'
+                    r.font.size = Pt(11)
+                    parent.insert(parent.index(t._element), new_p._element)
+                    
+                    insert_table_after(t._element, table_map["tannarx"], doc)
+            elif key in table_map:
                 insert_table_after(t._element, table_map[key], doc)
             parent.remove(t._element)
 
