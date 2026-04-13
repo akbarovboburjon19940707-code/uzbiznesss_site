@@ -187,8 +187,6 @@ def create_word_document(template_path: str, output_path: str, context: dict = N
                     insert_table_after(t._element, table_map["foydalanish_xarajatlari"], doc)
                 if "tannarx" in table_map:
                     # Oraliqqa Tannarx sarlavhasini text sifatida qo'shamiz
-                    from docx.enum.text import WD_ALIGN_PARAGRAPH
-                    from docx.shared import Pt
                     new_p = doc.add_paragraph()
                     new_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                     r = new_p.add_run("To'liq yillik xarajatlar (Tannarx)")
