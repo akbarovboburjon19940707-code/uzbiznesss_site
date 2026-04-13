@@ -10,5 +10,29 @@
     "submitted_at": "2026-04-11 18:26:15",
     "reviewed_at": null,
     "admin_note": ""
+  },
+  "7587dcf1-23a": {
+    "id": "7587dcf1-23a",
+    "user_name": "Test User",
+    "loyiha_nomi": "Test Loyiha",
+    "amount": 80000,
+    "status": "approved",
+    "receipt_file": "7587dcf1-23a_1776073379.jpg",
+    "created_at": "2026-04-13 14:42:59",
+    "submitted_at": "2026-04-13 14:42:59",
+    "reviewed_at": "2026-04-13 14:42:59",
+    "admin_note": "Test tasdiqlash"
+  },
+  "e0a12db3-db2": {
+    "id": "e0a12db3-db2",
+    "user_name": "Reject Test",
+    "loyiha_nomi": "Reject",
+    "amount": 80000,
+    "status": "rejected",
+    "receipt_file": "e0a12db3-db2_1776073384.jpg",
+    "created_at": "2026-04-13 14:43:04",
+    "submitted_at": "2026-04-13 14:43:04",
+    "reviewed_at": "2026-04-13 14:43:04",
+    "admin_note": "Test rad etish"
   }
 }
