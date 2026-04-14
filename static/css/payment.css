@@ -77,6 +77,26 @@
     background: #119e91;
     color: #fff;
 }
+/* ── Payment Panels (Switching) ── */
+.brand-pay-panel {
+    display: none;
+    animation: tabFadeIn 0.35s ease;
+}
+.brand-pay-panel.active {
+    display: block;
+}
+
+@keyframes tabFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .pmt-info {
     display: flex;
     flex-direction: column;
