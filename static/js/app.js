@@ -18,6 +18,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 2. Navigatsiya (Stepper) setup
     setupStepper();
 
+    // Sahifa yangilanganda oldingi bosqichda qolish
+    const savedStep = parseInt(sessionStorage.getItem('currentBiznesStep'), 10);
+    if (!isNaN(savedStep) && savedStep >= 1 && savedStep <= totalSteps) {
+        goToStep(savedStep);
+    }
+
     // 3. Form inputlarini kuzatish (Real-time update)
     setupInputWatchers();
 
@@ -300,6 +306,7 @@ function goToStep(s) {
     }
 
     currentStep = s;
+    sessionStorage.setItem('currentBiznesStep', s);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
