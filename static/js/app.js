@@ -1088,13 +1088,13 @@ function switchMainTab(method) {
     }
 
     // Panels visibility
-    document.getElementById('mainPanelCard').classList.add('hidden');
-    document.getElementById('mainPanelClick').classList.add('hidden');
-    document.getElementById('mainPanelPayme').classList.add('hidden');
+    document.getElementById('mainPanelCard').classList.remove('active');
+    document.getElementById('mainPanelClick').classList.remove('active');
+    document.getElementById('mainPanelPayme').classList.remove('active');
 
-    if(method === 'card') document.getElementById('mainPanelCard').classList.remove('hidden');
-    if(method === 'click') document.getElementById('mainPanelClick').classList.remove('hidden');
-    if(method === 'payme') document.getElementById('mainPanelPayme').classList.remove('hidden');
+    if(method === 'card') document.getElementById('mainPanelCard').classList.add('active');
+    if(method === 'click') document.getElementById('mainPanelClick').classList.add('active');
+    if(method === 'payme') document.getElementById('mainPanelPayme').classList.add('active');
 }
 
 async function submitClickDirect() {
