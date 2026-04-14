@@ -1028,6 +1028,8 @@ async function submitClickDirect() {
             document.getElementById('clickLoadingTxt').classList.add('hidden');
         }
     } catch (e) {
+        console.error("Click error:", e);
+        showAlert("Tarmoq xatosi yoki server bilan muammo: " + e.message);
         btn.disabled = false;
         document.getElementById('clickLoadingTxt').classList.add('hidden');
     }
@@ -1070,6 +1072,8 @@ async function submitPaymeDirect() {
             document.getElementById('paymeLoadingTxt').classList.add('hidden');
         }
     } catch (e) {
+        console.error("Payme error:", e);
+        showAlert("Tarmoq xatosi yoki server bilan muammo: " + e.message);
         btn.disabled = false;
         document.getElementById('paymeLoadingTxt').classList.add('hidden');
     }
