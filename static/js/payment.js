@@ -272,16 +272,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Click name field — enable/disable button
     if (clickUserName) {
-        clickUserName.addEventListener('input', () => {
-            if (btnClickPay) {
-                btnClickPay.disabled = !clickUserName.value.trim();
-            }
+        ['input', 'change', 'keyup'].forEach(evt => {
+            clickUserName.addEventListener(evt, () => {
+                if (btnClickPay) {
+                    btnClickPay.disabled = !clickUserName.value.trim();
+                }
+            });
         });
     }
 
     // Click to'lov tugmasi
     if (btnClickPay) {
         btnClickPay.addEventListener('click', async () => {
+            console.log('⚡ Click pay button triggered');
             const userName = clickUserName ? clickUserName.value.trim() : '';
             if (!userName) {
                 alert('Iltimos, ismingizni kiriting');
@@ -311,7 +314,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Loading state ko'rsatish
                     if (clickLoadingState) {
                         clickLoadingState.classList.remove('hidden');
-                        const infoCard = document.querySelector('.click-info-card');
+                        // TO'G'RI SELEKTOR: .brand-pay-card
+                        const infoCard = document.querySelector('.brand-pay-card.brand-click');
                         if (infoCard) infoCard.style.display = 'none';
                     }
 
@@ -353,10 +357,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Payme name field — enable/disable button
     if (paymeUserName) {
-        paymeUserName.addEventListener('input', () => {
-            if (btnPaymePay) {
-                btnPaymePay.disabled = !paymeUserName.value.trim();
-            }
+        ['input', 'change', 'keyup'].forEach(evt => {
+            paymeUserName.addEventListener(evt, () => {
+                if (btnPaymePay) {
+                    btnPaymePay.disabled = !paymeUserName.value.trim();
+                }
+            });
         });
     }
 
@@ -392,10 +398,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Loading state ko'rsatish
                     if (paymeLoadingState) {
                         paymeLoadingState.classList.remove('hidden');
-                        const infoCards = document.querySelectorAll('.click-info-card');
-                        infoCards.forEach(c => {
-                            if(c.contains(btnPaymePay)) c.style.display = 'none';
-                        });
+                        // TO'G'RI SELEKTOR: .brand-pay-card
+                        const infoCard = document.querySelector('.brand-pay-card.brand-payme');
+                        if (infoCard) infoCard.style.display = 'none';
                     }
 
                     // Sidebar yangilash

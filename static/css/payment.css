@@ -136,6 +136,7 @@
     opacity: 0.2;
     background-image: radial-gradient(#ffffff 1px, transparent 1px);
     background-size: 20px 20px;
+    pointer-events: none; /* Prevent click interception */
 }
 .brand-click {
     background: linear-gradient(135deg, #0082FF 0%, #0050d2 100%);
@@ -195,6 +196,7 @@
     font-size: 13px;
     font-weight: 600;
     margin-bottom: 8px;
+    pointer-events: none; /* Allow clicks to pass through to inputs */
 }
 .brand-field-group input {
     background: rgba(255,255,255,0.15);
@@ -235,7 +237,7 @@
     transition: all 0.3s ease;
     margin-top: 24px;
     position: relative;
-    z-index: 2;
+    z-index: 5; /* Ensure button is on top of other elements */
 }
 .btn-click-pay {
     background: #fff;
