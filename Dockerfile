@@ -20,5 +20,5 @@ COPY . .
 # Port
 EXPOSE 10000
 
-# Ishga tushirish
-CMD ["python", "app.py"]
+# Ishga tushirish (Production server uchun, gunicorn orqali uzun timeout bilan)
+CMD ["gunicorn", "--workers", "2", "--timeout", "120", "--bind", "0.0.0.0:10000", "app:app"]
