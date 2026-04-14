@@ -44,25 +44,27 @@ os.makedirs(RECEIPTS_DIR, exist_ok=True)
 
 
 def _load_payments() -> Dict[str, dict]:
-    """JSON fayldan to'lovlarni yuklash (thread-safe)."""
-    with _payments_lock:
-        if os.path.exists(PAYMENTS_FILE):
-            try:
-                with open(PAYMENTS_FILE, "r", encoding="utf-8") as f:
-                    return json.load(f)
-            except (json.JSONDecodeError, IOError):
-                return {}
-        return {}
+    """JSON fayldan to'lovlarni yuklash.
+    MUHIM: Bu funksiya _payments_lock ICHIDA chaqirilishi kerak!
+    """
+    if os.path.exists(PAYMENTS_FILE):
+        try:
+            with open(PAYMENTS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            return {}
+    return {}
 
 
 def _save_payments(payments: Dict[str, dict]):
-    """To'lovlarni JSON faylga saqlash (thread-safe)."""
-    with _payments_lock:
-        try:
-            with open(PAYMENTS_FILE, "w", encoding="utf-8") as f:
-                json.dump(payments, f, ensure_ascii=False, indent=2)
-        except IOError as e:
-            logger.error(f"To'lovlarni saqlashda xatolik: {e}")
+    """To'lovlarni JSON faylga saqlash.
+    MUHIM: Bu funksiya _payments_lock ICHIDA chaqirilishi kerak!
+    """
+    try:
+        with open(PAYMENTS_FILE, "w", encoding="utf-8") as f:
+            json.dump(payments, f, ensure_ascii=False, indent=2)
+    except IOError as e:
+        logger.error(f"To'lovlarni saqlashda xatolik: {e}")
 
 
 def _generate_order_id() -> str:
@@ -82,102 +84,108 @@ def _generate_order_id() -> str:
 
 def create_payment(user_name: str, loyiha_nomi: str = "") -> dict:
     """Yangi to'lov yaratish (karta orqali — mavjud tizim)."""
-    payments = _load_payments()
-    payment_id = str(uuid.uuid4())[:12]
+    with _payments_lock:
+        payments = _load_payments()
+        payment_id = str(uuid.uuid4())[:12]
 
-    payment = {
-        "id": payment_id,
-        "order_id": _generate_order_id(),
-        "user_name": user_name,
-        "loyiha_nomi": loyiha_nomi,
-        "amount": PLAN_PRICE,
-        "payment_provider": "card",
-        "payment_status": "pending",
-        "status": "pending",  # pending | reviewing | approved | rejected
-        "receipt_file": None,
-        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "submitted_at": None,
-        "reviewed_at": None,
-        "updated_at": None,
-        "admin_note": "",
-        "click_trans_id": None,
-        "merchant_prepare_id": None,
-    }
+        payment = {
+            "id": payment_id,
+            "order_id": _generate_order_id(),
+            "user_name": user_name,
+            "loyiha_nomi": loyiha_nomi,
+            "amount": PLAN_PRICE,
+            "payment_provider": "card",
+            "payment_status": "pending",
+            "status": "pending",  # pending | reviewing | approved | rejected
+            "receipt_file": None,
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "submitted_at": None,
+            "reviewed_at": None,
+            "updated_at": None,
+            "admin_note": "",
+            "click_trans_id": None,
+            "merchant_prepare_id": None,
+        }
 
-    payments[payment_id] = payment
-    _save_payments(payments)
+        payments[payment_id] = payment
+        _save_payments(payments)
     logger.info(f"To'lov yaratildi: {payment_id}, user: {user_name}, provider: card")
     return payment
 
 
 def submit_receipt(payment_id: str, receipt_filename: str) -> dict:
     """Chek yuklandi — tekshirishga yuborish."""
-    payments = _load_payments()
-    payment = payments.get(payment_id)
+    with _payments_lock:
+        payments = _load_payments()
+        payment = payments.get(payment_id)
 
-    if not payment:
-        return {"success": False, "error": "To'lov topilmadi"}
+        if not payment:
+            return {"success": False, "error": "To'lov topilmadi"}
 
-    payment["receipt_file"] = receipt_filename
-    payment["status"] = "reviewing"
-    payment["submitted_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    payment["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        payment["receipt_file"] = receipt_filename
+        payment["status"] = "reviewing"
+        payment["submitted_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        payment["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    payments[payment_id] = payment
-    _save_payments(payments)
+        payments[payment_id] = payment
+        _save_payments(payments)
     logger.info(f"Chek yuklandi: {payment_id}, fayl: {receipt_filename}")
     return {"success": True, "payment": payment}
 
 
 def admin_approve(payment_id: str, admin_note: str = "") -> dict:
     """Admin to'lovni tasdiqlash."""
-    payments = _load_payments()
-    payment = payments.get(payment_id)
+    with _payments_lock:
+        payments = _load_payments()
+        payment = payments.get(payment_id)
 
-    if not payment:
-        return {"success": False, "error": "To'lov topilmadi"}
+        if not payment:
+            return {"success": False, "error": "To'lov topilmadi"}
 
-    payment["status"] = "approved"
-    payment["payment_status"] = "success"
-    payment["reviewed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    payment["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    payment["admin_note"] = admin_note
+        payment["status"] = "approved"
+        payment["payment_status"] = "success"
+        payment["reviewed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        payment["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        payment["admin_note"] = admin_note
 
-    payments[payment_id] = payment
-    _save_payments(payments)
+        payments[payment_id] = payment
+        _save_payments(payments)
     logger.info(f"To'lov tasdiqlandi: {payment_id}")
     return {"success": True, "payment": payment}
 
 
 def admin_reject(payment_id: str, reason: str = "") -> dict:
     """Admin to'lovni rad etish."""
-    payments = _load_payments()
-    payment = payments.get(payment_id)
+    with _payments_lock:
+        payments = _load_payments()
+        payment = payments.get(payment_id)
 
-    if not payment:
-        return {"success": False, "error": "To'lov topilmadi"}
+        if not payment:
+            return {"success": False, "error": "To'lov topilmadi"}
 
-    payment["status"] = "rejected"
-    payment["payment_status"] = "failed"
-    payment["reviewed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    payment["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    payment["admin_note"] = reason
+        payment["status"] = "rejected"
+        payment["payment_status"] = "failed"
+        payment["reviewed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        payment["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        payment["admin_note"] = reason
 
-    payments[payment_id] = payment
-    _save_payments(payments)
+        payments[payment_id] = payment
+        _save_payments(payments)
     logger.info(f"To'lov rad etildi: {payment_id}, sabab: {reason}")
     return {"success": True, "payment": payment}
 
 
 def get_payment(payment_id: str) -> Optional[dict]:
     """Bitta to'lovni olish."""
-    payments = _load_payments()
-    return payments.get(payment_id)
+    with _payments_lock:
+        payments = _load_payments()
+        return payments.get(payment_id)
 
 
 def get_all_payments() -> List[dict]:
     """Barcha to'lovlarni olish (admin uchun)."""
-    payments = _load_payments()
+    with _payments_lock:
+        payments = _load_payments()
     result = list(payments.values())
     result.sort(key=lambda x: x.get("created_at", ""), reverse=True)
     return result
@@ -232,32 +240,33 @@ def create_click_payment(user_name: str, loyiha_nomi: str = "",
     Returns:
         Yangi to'lov yozuvi (order_id bilan)
     """
-    payments = _load_payments()
-    payment_id = str(uuid.uuid4())[:12]
-    order_id = _generate_order_id()
+    with _payments_lock:
+        payments = _load_payments()
+        payment_id = str(uuid.uuid4())[:12]
+        order_id = _generate_order_id()
 
-    payment = {
-        "id": payment_id,
-        "order_id": order_id,
-        "user_name": user_name,
-        "loyiha_nomi": loyiha_nomi,
-        "product_id": product_id,
-        "amount": PLAN_PRICE,
-        "payment_provider": "click",
-        "payment_status": "pending",   # pending | preparing | success | failed
-        "status": "pending",           # umumiy status (mavjud tizim uchun)
-        "receipt_file": None,
-        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "submitted_at": None,
-        "reviewed_at": None,
-        "updated_at": None,
-        "admin_note": "",
-        "click_trans_id": None,
-        "merchant_prepare_id": None,
-    }
+        payment = {
+            "id": payment_id,
+            "order_id": order_id,
+            "user_name": user_name,
+            "loyiha_nomi": loyiha_nomi,
+            "product_id": product_id,
+            "amount": PLAN_PRICE,
+            "payment_provider": "click",
+            "payment_status": "pending",   # pending | preparing | success | failed
+            "status": "pending",           # umumiy status (mavjud tizim uchun)
+            "receipt_file": None,
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "submitted_at": None,
+            "reviewed_at": None,
+            "updated_at": None,
+            "admin_note": "",
+            "click_trans_id": None,
+            "merchant_prepare_id": None,
+        }
 
-    payments[payment_id] = payment
-    _save_payments(payments)
+        payments[payment_id] = payment
+        _save_payments(payments)
     logger.info(f"Click to'lov yaratildi: {payment_id}, order: {order_id}, "
                 f"user: {user_name}")
     return payment
@@ -274,10 +283,11 @@ def get_payment_by_order_id(order_id: str) -> Optional[dict]:
     Returns:
         To'lov yozuvi yoki None
     """
-    payments = _load_payments()
-    for payment in payments.values():
-        if payment.get("order_id") == order_id:
-            return payment
+    with _payments_lock:
+        payments = _load_payments()
+        for payment in payments.values():
+            if payment.get("order_id") == order_id:
+                return payment
     return None
 
 
@@ -294,39 +304,40 @@ def update_click_payment_status(order_id: str, status: str,
     Returns:
         Yangilangan to'lov yozuvi yoki None
     """
-    payments = _load_payments()
-    
-    # order_id bo'yicha payment topish
-    target_id = None
-    for pid, payment in payments.items():
-        if payment.get("order_id") == order_id:
-            target_id = pid
-            break
-    
-    if not target_id:
-        logger.error(f"Click status update: order topilmadi: {order_id}")
-        return None
-    
-    payment = payments[target_id]
-    payment["payment_status"] = status
-    payment["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
-    if click_trans_id:
-        payment["click_trans_id"] = click_trans_id
-    
-    # Umumiy status ham yangilanadi
-    if status == "success":
-        payment["status"] = "approved"
-        payment["reviewed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    elif status == "failed":
-        payment["status"] = "rejected"
-        payment["reviewed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    elif status == "preparing":
-        payment["status"] = "reviewing"
-        payment["merchant_prepare_id"] = target_id
-    
-    payments[target_id] = payment
-    _save_payments(payments)
+    with _payments_lock:
+        payments = _load_payments()
+        
+        # order_id bo'yicha payment topish
+        target_id = None
+        for pid, payment in payments.items():
+            if payment.get("order_id") == order_id:
+                target_id = pid
+                break
+        
+        if not target_id:
+            logger.error(f"Click status update: order topilmadi: {order_id}")
+            return None
+        
+        payment = payments[target_id]
+        payment["payment_status"] = status
+        payment["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        if click_trans_id:
+            payment["click_trans_id"] = click_trans_id
+        
+        # Umumiy status ham yangilanadi
+        if status == "success":
+            payment["status"] = "approved"
+            payment["reviewed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        elif status == "failed":
+            payment["status"] = "rejected"
+            payment["reviewed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        elif status == "preparing":
+            payment["status"] = "reviewing"
+            payment["merchant_prepare_id"] = target_id
+        
+        payments[target_id] = payment
+        _save_payments(payments)
     logger.info(f"Click to'lov yangilandi: order={order_id}, status={status}, "
                 f"click_trans={click_trans_id}")
     return payment
@@ -377,35 +388,36 @@ def get_payment_by_click_status(order_id: str) -> dict:
 def create_payme_payment(user_name: str, loyiha_nomi: str = "",
                          product_id: str = None) -> dict:
     """Payme to'lov uchun yangi buyurtma yaratish."""
-    payments = _load_payments()
-    payment_id = str(uuid.uuid4())[:12]
-    order_id = _generate_order_id()
+    with _payments_lock:
+        payments = _load_payments()
+        payment_id = str(uuid.uuid4())[:12]
+        order_id = _generate_order_id()
 
-    payment = {
-        "id": payment_id,
-        "order_id": order_id,
-        "user_name": user_name,
-        "loyiha_nomi": loyiha_nomi,
-        "product_id": product_id,
-        "amount": PLAN_PRICE,
-        "payment_provider": "payme",
-        "payment_status": "pending",
-        "status": "pending",
-        "receipt_file": None,
-        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "submitted_at": None,
-        "reviewed_at": None,
-        "updated_at": None,
-        "admin_note": "",
-        "payme_trans_id": None,
-        "payme_create_time": None,
-        "payme_perform_time": None,
-        "payme_cancel_time": None,
-        "payme_cancel_reason": None,
-    }
+        payment = {
+            "id": payment_id,
+            "order_id": order_id,
+            "user_name": user_name,
+            "loyiha_nomi": loyiha_nomi,
+            "product_id": product_id,
+            "amount": PLAN_PRICE,
+            "payment_provider": "payme",
+            "payment_status": "pending",
+            "status": "pending",
+            "receipt_file": None,
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "submitted_at": None,
+            "reviewed_at": None,
+            "updated_at": None,
+            "admin_note": "",
+            "payme_trans_id": None,
+            "payme_create_time": None,
+            "payme_perform_time": None,
+            "payme_cancel_time": None,
+            "payme_cancel_reason": None,
+        }
 
-    payments[payment_id] = payment
-    _save_payments(payments)
+        payments[payment_id] = payment
+        _save_payments(payments)
     logger.info(f"Payme to'lov yaratildi: {payment_id}, order: {order_id}, user: {user_name}")
     return payment
 
@@ -413,46 +425,48 @@ def update_payme_payment_status(order_id: str, status: str, payme_trans_id: str 
                                 create_time: int = None, perform_time: int = None, 
                                 cancel_time: int = None, reason: int = None) -> Optional[dict]:
     """Payme to'lov holatini yangilash."""
-    payments = _load_payments()
-    
-    target_id = None
-    for pid, payment in payments.items():
-        if payment.get("order_id") == order_id:
-            target_id = pid
-            break
-            
-    if not target_id:
-        logger.error(f"Payme status update: order topilmadi: {order_id}")
-        return None
+    with _payments_lock:
+        payments = _load_payments()
         
-    payment = payments[target_id]
-    payment["payment_status"] = status
-    payment["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
-    if payme_trans_id: payment["payme_trans_id"] = payme_trans_id
-    if create_time: payment["payme_create_time"] = create_time
-    if perform_time: payment["payme_perform_time"] = perform_time
-    if cancel_time: payment["payme_cancel_time"] = cancel_time
-    if reason is not None: payment["payme_cancel_reason"] = reason
-    
-    if status == "success":
-        payment["status"] = "approved"
-        payment["reviewed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    elif status == "failed":
-        payment["status"] = "rejected"
-        payment["reviewed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    elif status == "preparing":
-        payment["status"] = "reviewing"
-    
-    payments[target_id] = payment
-    _save_payments(payments)
+        target_id = None
+        for pid, payment in payments.items():
+            if payment.get("order_id") == order_id:
+                target_id = pid
+                break
+                
+        if not target_id:
+            logger.error(f"Payme status update: order topilmadi: {order_id}")
+            return None
+            
+        payment = payments[target_id]
+        payment["payment_status"] = status
+        payment["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        if payme_trans_id: payment["payme_trans_id"] = payme_trans_id
+        if create_time: payment["payme_create_time"] = create_time
+        if perform_time: payment["payme_perform_time"] = perform_time
+        if cancel_time: payment["payme_cancel_time"] = cancel_time
+        if reason is not None: payment["payme_cancel_reason"] = reason
+        
+        if status == "success":
+            payment["status"] = "approved"
+            payment["reviewed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        elif status == "failed":
+            payment["status"] = "rejected"
+            payment["reviewed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        elif status == "preparing":
+            payment["status"] = "reviewing"
+        
+        payments[target_id] = payment
+        _save_payments(payments)
     logger.info(f"Payme to'lov yangilandi: order={order_id}, status={status}, trans={payme_trans_id}")
     return payment
 
 def get_payment_by_payme_trans_id(trans_id: str) -> Optional[dict]:
     """payme_trans_id bo'yicha to'lovni topish."""
-    payments = _load_payments()
-    for payment in payments.values():
-        if payment.get("payme_trans_id") == trans_id:
-            return payment
+    with _payments_lock:
+        payments = _load_payments()
+        for payment in payments.values():
+            if payment.get("payme_trans_id") == trans_id:
+                return payment
     return None

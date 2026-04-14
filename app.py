@@ -385,7 +385,7 @@ def click_callback():
 
         if not data:
             # Fallback: JSON body bo'lishi mumkin
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
 
         action = data.get("action", "")
         merchant_trans_id = data.get("merchant_trans_id", "")
