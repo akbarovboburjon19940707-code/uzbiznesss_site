@@ -965,18 +965,12 @@ function resetPaymentForm() {
 function switchMainTab(method) {
     // Tab active styles
     document.querySelectorAll('.pay-method-tab').forEach(t => {
-        t.style.background = 'transparent';
-        t.style.color = '#cbd5e1';
         t.classList.remove('active');
     });
     
     const activeTab = document.querySelector(`.pay-method-tab[data-method="${method}"]`);
     if(activeTab) {
         activeTab.classList.add('active');
-        activeTab.style.color = 'white';
-        if(method === 'card') activeTab.style.background = 'var(--accent)';
-        if(method === 'click') activeTab.style.background = '#2563eb';
-        if(method === 'payme') activeTab.style.background = '#0ea5e9';
     }
 
     // Panels visibility

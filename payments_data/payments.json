@@ -113,5 +113,24 @@
     "admin_note": "",
     "click_trans_id": null,
     "merchant_prepare_id": null
+  },
+  "1d8c33cc-e4b": {
+    "id": "1d8c33cc-e4b",
+    "order_id": "1776138747_f66f",
+    "user_name": "Akabarov Bobur",
+    "loyiha_nomi": "Mebel ishlab chiqarish",
+    "product_id": null,
+    "amount": 80000,
+    "payment_provider": "click",
+    "payment_status": "pending",
+    "status": "pending",
+    "receipt_file": null,
+    "created_at": "2026-04-14 08:52:27",
+    "submitted_at": null,
+    "reviewed_at": null,
+    "updated_at": null,
+    "admin_note": "",
+    "click_trans_id": null,
+    "merchant_prepare_id": null
   }
 }

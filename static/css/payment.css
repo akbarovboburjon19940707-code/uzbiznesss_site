@@ -62,16 +62,20 @@
     color: #fff;
 }
 .pmt-icon-click {
-    background: #dbeafe;
-    color: #2563eb;
+    background: rgba(0, 130, 255, 0.1);
+    color: #0082FF;
 }
 .pay-method-tab.active .pmt-icon-click {
-    background: #2563eb;
+    background: #0082FF;
     color: #fff;
 }
 .pmt-icon-payme {
-    background: #e0f2fe;
-    color: #0ea5e9;
+    background: rgba(17, 158, 145, 0.1);
+    color: #119e91;
+}
+.pay-method-tab.active .pmt-icon-payme {
+    background: #119e91;
+    color: #fff;
 }
 .pmt-info {
     display: flex;
@@ -115,65 +119,106 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Click Info Card ── */
-.click-info-card {
-    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-    border: 1px solid #bfdbfe;
+/* ── Brand Payment Cards (Click & Payme) ── */
+.brand-pay-card {
+    position: relative;
     border-radius: var(--radius-xl);
     padding: 36px 28px;
     text-align: center;
-}
-.click-info-icon {
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
     color: #fff;
+    overflow: hidden;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.1);
+}
+.brand-pay-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.2;
+    background-image: radial-gradient(#ffffff 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+.brand-click {
+    background: linear-gradient(135deg, #0082FF 0%, #0050d2 100%);
+    border: 1px solid #0082FF;
+}
+.brand-payme {
+    background: linear-gradient(135deg, #119e91 0%, #0d7f74 100%);
+    border: 1px solid #1fcec0;
+}
+
+.brand-logo-wrap {
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 20px;
-    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.25);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    position: relative;
+    z-index: 2;
+    color: #fff;
 }
-.click-info-title {
+
+.brand-info-title {
     font-family: 'Outfit', sans-serif;
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 800;
-    color: var(--gray-900);
+    color: #fff;
     margin-bottom: 8px;
+    position: relative;
+    z-index: 2;
 }
-.click-info-desc {
+.brand-info-desc {
     font-size: 14px;
-    color: var(--gray-600);
+    color: rgba(255, 255, 255, 0.9);
     line-height: 1.6;
     max-width: 380px;
     margin: 0 auto 20px;
-}
-.click-features {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    flex-wrap: wrap;
-    margin-bottom: 4px;
-}
-.click-feature {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #16a34a;
-}
-.click-feature svg {
-    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
 }
 
-/* ── Click Pay Button ── */
-.click-pay-wrap {
-    margin-top: 24px;
-    text-align: center;
+/* Form Fields in Brand Card */
+.brand-field-group {
+    text-align: left;
+    margin-top: 20px;
+    position: relative;
+    z-index: 2;
 }
-.btn-click-pay {
+.brand-field-group label {
+    display: block;
+    color: rgba(255,255,255,0.95);
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+.brand-field-group input {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: #fff;
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    width: 100%;
+    font-size: 15px;
+    backdrop-filter: blur(8px);
+    transition: all 0.2s ease;
+}
+.brand-field-group input::placeholder {
+    color: rgba(255,255,255,0.6);
+}
+.brand-field-group input:focus {
+    background: rgba(255,255,255,0.25);
+    border-color: #fff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.2);
+}
+
+/* Pay Button */
+.btn-brand-pay {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -182,39 +227,54 @@
     max-width: 380px;
     padding: 16px 32px;
     font-size: 16px;
-    font-weight: 700;
+    font-weight: 800;
     font-family: 'Inter', sans-serif;
-    color: #fff;
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
     border: none;
     border-radius: var(--radius-lg);
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+    margin-top: 24px;
+    position: relative;
+    z-index: 2;
+}
+.btn-click-pay {
+    background: #fff;
+    color: #0050d2;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
 }
 .btn-click-pay:hover:not(:disabled) {
-    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    background: #f8fafc;
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
 }
-.btn-click-pay:active:not(:disabled) {
-    transform: translateY(0);
+.btn-payme-pay {
+    background: #fff;
+    color: #0d7f74;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
 }
-.btn-click-pay:disabled {
-    opacity: 0.5;
+.btn-payme-pay:hover:not(:disabled) {
+    background: #f8fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+.btn-brand-pay:disabled {
+    opacity: 0.6;
     cursor: not-allowed;
     transform: none !important;
     box-shadow: none !important;
 }
-.click-pay-note {
+
+.brand-pay-note {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    margin-top: 12px;
+    margin-top: 14px;
     font-size: 12px;
-    color: var(--gray-400);
+    color: rgba(255,255,255,0.8);
     font-weight: 500;
+    position: relative;
+    z-index: 2;
 }
 
 /* ── Click Loading State ── */
