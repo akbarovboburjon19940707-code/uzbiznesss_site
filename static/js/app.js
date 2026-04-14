@@ -22,6 +22,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const savedStep = parseInt(sessionStorage.getItem('currentBiznesStep'), 10);
     if (!isNaN(savedStep) && savedStep >= 1 && savedStep <= totalSteps) {
         goToStep(savedStep);
+    } else {
+        goToStep(1); // Default to step 1 for new users
     }
 
     // 3. Form inputlarini kuzatish (Real-time update)
@@ -1001,6 +1003,12 @@ async function submitClickDirect() {
     btn.disabled = true;
     document.getElementById('clickLoadingTxt').classList.remove('hidden');
     
+    // Antigravity Pro tip: Open window immediately to bypass Safari/Mobile popup blockers
+    const paymentWindow = window.open('', '_blank');
+    if(paymentWindow) {
+        paymentWindow.document.write("<h3>To'lov serveri bilan ulanilmoqda... Iltimos kuting.</h3>");
+    }
+    
     try {
         const resp = await fetch('/api/click/create-payment', {
             method: 'POST',
@@ -1010,8 +1018,11 @@ async function submitClickDirect() {
         const data = await resp.json();
         
         if (data.success && data.payment_url) {
-            // Yangi oynada Click ochish (form ma'lumotlari yo'qolmasligi uchun)
-            window.open(data.payment_url, '_blank');
+            if(paymentWindow) {
+                paymentWindow.location.href = data.payment_url;
+            } else {
+                window.open(data.payment_url, '_blank'); // fallback
+            }
             currentPaymentId = data.payment_id;
             
             // Switch UI to checking status
@@ -1023,11 +1034,13 @@ async function submitClickDirect() {
             // Start polling
             paymentStatusInterval = setInterval(() => checkPaymentStatus(currentPaymentId), 5000);
         } else {
+            if(paymentWindow) paymentWindow.close();
             showAlert(data.error || "Click to'lov yaratishda xatolik");
             btn.disabled = false;
             document.getElementById('clickLoadingTxt').classList.add('hidden');
         }
     } catch (e) {
+        if(paymentWindow) paymentWindow.close();
         console.error("Click error:", e);
         showAlert("Tarmoq xatosi yoki server bilan muammo: " + e.message);
         btn.disabled = false;
@@ -1046,6 +1059,11 @@ async function submitPaymeDirect() {
     btn.disabled = true;
     document.getElementById('paymeLoadingTxt').classList.remove('hidden');
     
+    const paymentWindow = window.open('', '_blank');
+    if(paymentWindow) {
+        paymentWindow.document.write("<h3>To'lov serveri bilan ulanilmoqda... Iltimos kuting.</h3>");
+    }
+    
     try {
         const resp = await fetch('/api/payme/create-payment', {
             method: 'POST',
@@ -1055,8 +1073,11 @@ async function submitPaymeDirect() {
         const data = await resp.json();
         
         if (data.success && data.payment_url) {
-            // Yangi oynada Payme ochish
-            window.open(data.payment_url, '_blank');
+            if(paymentWindow) {
+                paymentWindow.location.href = data.payment_url;
+            } else {
+                window.open(data.payment_url, '_blank');
+            }
             currentPaymentId = data.payment_id;
             
             // Switch UI to checking status
@@ -1067,11 +1088,13 @@ async function submitPaymeDirect() {
             // Start polling
             paymentStatusInterval = setInterval(() => checkPaymentStatus(currentPaymentId), 5000);
         } else {
+            if(paymentWindow) paymentWindow.close();
             showAlert(data.error || "Payme to'lov yaratishda xatolik");
             btn.disabled = false;
             document.getElementById('paymeLoadingTxt').classList.add('hidden');
         }
     } catch (e) {
+        if(paymentWindow) paymentWindow.close();
         console.error("Payme error:", e);
         showAlert("Tarmoq xatosi yoki server bilan muammo: " + e.message);
         btn.disabled = false;
