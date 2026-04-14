@@ -18,12 +18,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 2. Navigatsiya (Stepper) setup
     setupStepper();
 
-    // Sahifa yangilanganda oldingi bosqichda qolish
+    // Sahifa yangilanganda oldingi holatni tiklash
+    loadFormData();
+    
     const savedStep = parseInt(sessionStorage.getItem('currentBiznesStep'), 10);
     if (!isNaN(savedStep) && savedStep >= 1 && savedStep <= totalSteps) {
         goToStep(savedStep);
     } else {
-        goToStep(1); // Default to step 1 for new users
+        goToStep(1); 
     }
 
     // 3. Form inputlarini kuzatish (Real-time update)
@@ -38,6 +40,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Sidebar ni boshlang'ich holatda
     updateSidebarScorecard(null);
     updateStatusPanel();
+
+    // 5. To'lov sessiyasini tiklash (URL dagi payment_id orqali)
+    const urlParams = new URLSearchParams(window.location.search);
+    const pid = urlParams.get('payment_id');
+    if (pid) {
+        restorePaymentSession(pid);
+    }
 });
 
 // ============================================================
@@ -267,13 +276,109 @@ function setupStepper() {
 }
 
 function setupInputWatchers() {
-    // Har qanday input o'zgarganda xatolikni o'chirish
-    document.querySelectorAll('input, select').forEach(inp => {
+    // Har qanday input o'zgarganda xatolikni o'chirish va saqlash
+    document.querySelectorAll('input, select, textarea').forEach(inp => {
         inp.addEventListener('input', () => {
             inp.classList.remove('error');
             hideAlert();
+            saveFormData();
+        });
+        inp.addEventListener('change', () => {
+            saveFormData();
         });
     });
+}
+
+// Form ma'lumotlarini saqlash
+function saveFormData() {
+    const form = document.getElementById('biznesForm');
+    if (!form) return;
+    
+    const data = {};
+    const formData = new FormData(form);
+    formData.forEach((value, key) => {
+        if (typeof value === 'string' && key !== 'csrf_token' && key !== 'payment_id') {
+            data[key] = value;
+        }
+    });
+    
+    // Maxsus: Mulk va Faoliyat (hidden bo'lsa ham)
+    data['selectedMulk'] = selectedMulk;
+    data['selectedFaoliyat'] = selectedFaoliyat;
+    
+    localStorage.setItem('biznesRejaFormData', JSON.stringify(data));
+}
+
+// Form ma'lumotlarini tiklash
+function loadFormData() {
+    try {
+        const saved = localStorage.getItem('biznesRejaFormData');
+        if (!saved) return;
+        
+        const data = JSON.parse(saved);
+        const form = document.getElementById('biznesForm');
+        if (!form) return;
+
+        for (const [key, val] of Object.entries(data)) {
+            const el = form.elements[key];
+            if (el) {
+                if (el.type === 'radio' || el.type === 'checkbox') {
+                    // Radio/checkbox logic if needed
+                    if (el.length > 1) { // NodeList
+                         Array.from(el).forEach(radio => {
+                             if (radio.value === val) radio.checked = true;
+                         });
+                    } else {
+                        el.checked = (el.value === val);
+                    }
+                } else {
+                    el.value = val;
+                }
+            }
+        }
+
+        // Maxsus vizual holatlar
+        if (data.selectedMulk) selectMulk(data.selectedMulk);
+        if (data.selectedFaoliyat) selectFaoliyat(data.selectedFaoliyat);
+        
+        updateStatusPanel();
+        updateAnalysis();
+        updateCalc();
+    } catch (e) {
+        console.error("Form restore error:", e);
+    }
+}
+
+// To'lov sessiyasini tiklash (Click dan qaytganda)
+async function restorePaymentSession(paymentId) {
+    if (!paymentId) return;
+    
+    console.log("🔍 To'lov sessiyasi tiklanmoqda:", paymentId);
+    
+    try {
+        const resp = await fetch('/api/payment/status/' + paymentId);
+        const res = await resp.json();
+        
+        if (res.success && (res.status === 'approved' || res.status === 'success')) {
+            // 1. Step 8 ga o'tish
+            goToStep(8);
+            
+            // 2. Previewni yuklash (Form ma'lumotlaridan foydalangan holda)
+            await generatePreview();
+            
+            // 3. To'lov bo'limini yashirib, download bo'limini ko'rsatish
+            document.getElementById('paymentMethods').classList.add('hidden');
+            document.getElementById('paymentStatusBox').classList.add('hidden');
+            document.getElementById('downloadSection').classList.remove('hidden');
+            
+            const hiddenId = document.getElementById('hidden_payment_id');
+            if (hiddenId) hiddenId.value = paymentId;
+            
+            console.log("✅ To'lov tasdiqlangan, download tayyor.");
+        }
+    } catch (e) {
+        console.error("Restore payment error:", e);
+    }
 }
 
 // ============================================================

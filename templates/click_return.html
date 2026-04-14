@@ -263,7 +263,7 @@
                 if (data.success) {
                     if (data.status === 'success') {
                         clearInterval(pollTimer);
-                        showSuccess();
+                        showSuccess(data);
                     } else if (data.status === 'failed') {
                         clearInterval(pollTimer);
                         showFailed('To\'lov bekor qilindi yoki muvaffaqiyatsiz yakunlandi.');
@@ -275,10 +275,16 @@
             }
         }
 
-        function showSuccess() {
+        function showSuccess(data) {
             stateLoading.classList.add('hidden');
             stateFailed.classList.add('hidden');
             stateSuccess.classList.remove('hidden');
+
+            // Dashboard linkini payment_id bilan yangilash
+            const dashboardBtn = document.getElementById('btnGoDashboard');
+            if (dashboardBtn && data && data.payment_id) {
+                dashboardBtn.href = `/dashboard?payment_id=${data.payment_id}`;
+            }
         }
 
         function showFailed(msg) {
