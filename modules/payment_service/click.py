@@ -63,6 +63,8 @@ class ClickPaymentProvider(PaymentProvider):
         Returns:
             Click to'lov sahifasi URL
         """
+        import urllib.parse
+        
         if not all([CLICK_MERCHANT_ID, CLICK_SERVICE_ID]):
             raise PaymentError(
                 "Click credentials sozlanmagan",
@@ -82,7 +84,7 @@ class ClickPaymentProvider(PaymentProvider):
             params["merchant_user_id"] = CLICK_MERCHANT_USER_ID
 
         # URL query string yasash
-        query = "&".join(f"{k}={v}" for k, v in params.items() if v)
+        query = urllib.parse.urlencode({k: v for k, v in params.items() if v})
         url = f"{CLICK_PAYMENT_URL}?{query}"
 
         log_transaction("click", order_id, "url_created", amount,
