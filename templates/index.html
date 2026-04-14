@@ -466,7 +466,15 @@
                              </div>
 
                              <div id="paymentMethods" style="margin:20px 0;">
-                                <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; text-align:center;">
+                                <!-- To'lov usullari (Tabs) -->
+                                <div style="display:flex; gap:10px; margin-bottom:15px; border-radius:12px; background: rgba(0,0,0,0.2); padding:5px;">
+                                    <button type="button" class="pay-method-tab active" data-method="card" onclick="switchMainTab('card')" style="flex:1; border:none; background:var(--accent); color:white; border-radius:8px; padding:10px; font-weight:600; cursor:pointer;">💳 Karta (Manual)</button>
+                                    <button type="button" class="pay-method-tab" data-method="click" onclick="switchMainTab('click')" style="flex:1; border:none; background:transparent; color:#cbd5e1; border-radius:8px; padding:10px; font-weight:600; cursor:pointer;">🔵 Click</button>
+                                    <button type="button" class="pay-method-tab" data-method="payme" onclick="switchMainTab('payme')" style="flex:1; border:none; background:transparent; color:#cbd5e1; border-radius:8px; padding:10px; font-weight:600; cursor:pointer;">🟢 Payme</button>
+                                </div>
+
+                                <!-- Card Tab -->
+                                <div id="mainPanelCard" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; text-align:center;">
                                     <h4 style="margin-bottom: 15px; color: var(--accent); font-size:1.1rem;">Karta rekvizitlari</h4>
                                     <div style="font-size: 1.5rem; letter-spacing: 2px; font-weight: bold; margin-bottom: 10px;" id="uiCardNumber">9860 0401 0203 1362</div>
                                     <div style="color: #cbd5e1; font-size: 1rem; margin-bottom: 20px;" id="uiCardHolder">Akbarov B</div>
@@ -478,6 +486,30 @@
                                     </div>
                                     
                                     <button type="button" id="submitPaymentBtn" class="btn-base btn-primary" style="width:100%; height:50px; font-size:1.1rem; margin-top:20px;" onclick="submitPaymentReceipt()">📤 To'lovni Yuborish</button>
+                                </div>
+
+                                <!-- Click Tab -->
+                                <div id="mainPanelClick" class="hidden" style="background: rgba(37, 99, 235, 0.05); border: 1px solid rgba(37, 99, 235, 0.2); border-radius: 12px; padding: 20px; text-align:center;">
+                                    <h4 style="margin-bottom: 15px; color: #60a5fa; font-size:1.1rem;">🔵 Click orqali to'lov</h4>
+                                    <p style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 20px;">Click tizimi orqali avtomatik to'lash. To'lov darhol tasdiqlanadi.</p>
+                                    <div style="text-align: left; margin-bottom:15px;">
+                                        <label style="display:block; margin-bottom: 8px; font-weight: 500; color: #e2e8f0;">Ismingiz <span class="req">*</span></label>
+                                        <input type="text" id="clickNameField" class="input-ctrl" placeholder="Masalan: Karimov Azizbek" style="background: rgba(0,0,0,0.2);">
+                                    </div>
+                                    <button type="button" id="btnClickDirectPay" class="btn-base" style="width:100%; height:50px; font-size:1.1rem; margin-top:10px; background:#2563eb; color:white; border-color:#2563eb;" onclick="submitClickDirect()">🔵 Click bilan to'lash</button>
+                                    <div id="clickLoadingTxt" class="hidden" style="margin-top:15px; color:#60a5fa; font-size:0.9rem;">Click sahifasiga yo'naltirilmoqda...</div>
+                                </div>
+
+                                <!-- Payme Tab -->
+                                <div id="mainPanelPayme" class="hidden" style="background: rgba(14, 165, 233, 0.05); border: 1px solid rgba(14, 165, 233, 0.2); border-radius: 12px; padding: 20px; text-align:center;">
+                                    <h4 style="margin-bottom: 15px; color: #38bdf8; font-size:1.1rem;">🟢 Payme orqali to'lov</h4>
+                                    <p style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 20px;">Payme tizimi orqali avtomatik to'lash. To'lov darhol tasdiqlanadi.</p>
+                                    <div style="text-align: left; margin-bottom:15px;">
+                                        <label style="display:block; margin-bottom: 8px; font-weight: 500; color: #e2e8f0;">Ismingiz <span class="req">*</span></label>
+                                        <input type="text" id="paymeNameField" class="input-ctrl" placeholder="Masalan: Karimov Azizbek" style="background: rgba(0,0,0,0.2);">
+                                    </div>
+                                    <button type="button" id="btnPaymeDirectPay" class="btn-base" style="width:100%; height:50px; font-size:1.1rem; margin-top:10px; background:#0ea5e9; color:white; border-color:#0ea5e9;" onclick="submitPaymeDirect()">🟢 Payme bilan to'lash</button>
+                                    <div id="paymeLoadingTxt" class="hidden" style="margin-top:15px; color:#38bdf8; font-size:0.9rem;">Payme sahifasiga yo'naltirilmoqda...</div>
                                 </div>
                              </div>
 

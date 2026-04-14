@@ -959,6 +959,121 @@ function resetPaymentForm() {
     btn.disabled = false;
 }
 
+// ==========================================
+// TABS & DIRECT PAYMENT LOGIC (Click/Payme)
+// ==========================================
+function switchMainTab(method) {
+    // Tab active styles
+    document.querySelectorAll('.pay-method-tab').forEach(t => {
+        t.style.background = 'transparent';
+        t.style.color = '#cbd5e1';
+        t.classList.remove('active');
+    });
+    
+    const activeTab = document.querySelector(`.pay-method-tab[data-method="${method}"]`);
+    if(activeTab) {
+        activeTab.classList.add('active');
+        activeTab.style.color = 'white';
+        if(method === 'card') activeTab.style.background = 'var(--accent)';
+        if(method === 'click') activeTab.style.background = '#2563eb';
+        if(method === 'payme') activeTab.style.background = '#0ea5e9';
+    }
+
+    // Panels visibility
+    document.getElementById('mainPanelCard').classList.add('hidden');
+    document.getElementById('mainPanelClick').classList.add('hidden');
+    document.getElementById('mainPanelPayme').classList.add('hidden');
+
+    if(method === 'card') document.getElementById('mainPanelCard').classList.remove('hidden');
+    if(method === 'click') document.getElementById('mainPanelClick').classList.remove('hidden');
+    if(method === 'payme') document.getElementById('mainPanelPayme').classList.remove('hidden');
+}
+
+async function submitClickDirect() {
+    const name = document.getElementById('clickNameField').value.trim() || document.getElementById('tashabbuskor').value.trim();
+    if (!name) {
+        showAlert("Iltimos, ismingizni kiriting");
+        return;
+    }
+    
+    const btn = document.getElementById('btnClickDirectPay');
+    btn.disabled = true;
+    document.getElementById('clickLoadingTxt').classList.remove('hidden');
+    
+    try {
+        const resp = await fetch('/api/click/create-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_name: name, loyiha_nomi: document.getElementById('loyiha_nomi')?.value || 'Biznes Reja' })
+        });
+        const data = await resp.json();
+        
+        if (data.success && data.payment_url) {
+            // Yangi oynada Click ochish (form ma'lumotlari yo'qolmasligi uchun)
+            window.open(data.payment_url, '_blank');
+            currentPaymentId = data.payment_id;
+            
+            // Switch UI to checking status
+            document.getElementById('paymentMethods').classList.add('hidden');
+            document.getElementById('paymentStatusBox').classList.remove('hidden');
+            // Matnni to'g'rilash (Click API callback kutilmoqda)
+            document.querySelector('#paymentStatusBox p').textContent = "To'lovni Click oynasida yakunlang. Tizim avtomatik tasdiqlaydi, sahifani yopmang.";
+            
+            // Start polling
+            paymentStatusInterval = setInterval(() => checkPaymentStatus(currentPaymentId), 5000);
+        } else {
+            showAlert(data.error || "Click to'lov yaratishda xatolik");
+            btn.disabled = false;
+            document.getElementById('clickLoadingTxt').classList.add('hidden');
+        }
+    } catch (e) {
+        btn.disabled = false;
+        document.getElementById('clickLoadingTxt').classList.add('hidden');
+    }
+}
+
+async function submitPaymeDirect() {
+    const name = document.getElementById('paymeNameField').value.trim() || document.getElementById('tashabbuskor').value.trim();
+    if (!name) {
+        showAlert("Iltimos, ismingizni kiriting");
+        return;
+    }
+    
+    const btn = document.getElementById('btnPaymeDirectPay');
+    btn.disabled = true;
+    document.getElementById('paymeLoadingTxt').classList.remove('hidden');
+    
+    try {
+        const resp = await fetch('/api/payme/create-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_name: name, loyiha_nomi: document.getElementById('loyiha_nomi')?.value || 'Biznes Reja' })
+        });
+        const data = await resp.json();
+        
+        if (data.success && data.payment_url) {
+            // Yangi oynada Payme ochish
+            window.open(data.payment_url, '_blank');
+            currentPaymentId = data.payment_id;
+            
+            // Switch UI to checking status
+            document.getElementById('paymentMethods').classList.add('hidden');
+            document.getElementById('paymentStatusBox').classList.remove('hidden');
+            document.querySelector('#paymentStatusBox p').textContent = "To'lovni Payme oynasida yakunlang. Tizim avtomatik tasdiqlaydi, sahifani yopmang.";
+            
+            // Start polling
+            paymentStatusInterval = setInterval(() => checkPaymentStatus(currentPaymentId), 5000);
+        } else {
+            showAlert(data.error || "Payme to'lov yaratishda xatolik");
+            btn.disabled = false;
+            document.getElementById('paymeLoadingTxt').classList.add('hidden');
+        }
+    } catch (e) {
+        btn.disabled = false;
+        document.getElementById('paymeLoadingTxt').classList.add('hidden');
+    }
+}
+
 function fmt(n) {
     if (n === null || n === undefined || isNaN(n)) return "0";
     if (Math.abs(n) > 1000) {
