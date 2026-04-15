@@ -317,6 +317,30 @@ def serve_receipt(filename):
     return send_from_directory(RECEIPTS_DIR, filename)
 
 
+@app.route("/admin/logs", methods=["GET"])
+def admin_logs():
+    """Admin bo'limi uchun Click loglarini ko'rish (debug)."""
+    if not session.get("admin_logged_in"):
+        return redirect(url_for("admin_payments"))
+        
+    log_type = request.args.get("type", "callbacks")
+    log_path = os.path.join(BASE_DIR, "payments_data", "click_logs", f"{log_type}.log")
+    
+    content = ""
+    if os.path.exists(log_path):
+        try:
+            with open(log_path, "r", encoding="utf-8") as f:
+                # Oxirgi 100 qatorni olish
+                lines = f.readlines()
+                content = "".join(lines[-100:])
+        except:
+            content = "Log faylini o'qib bo'lmadi."
+    else:
+        content = "Log fayli topilmadi."
+        
+    return f"<h3>Admin Debug: {log_type}.log (Last 100 lines)</h3><pre>{content}</pre><br><a href='/admin/payments'>Orqaga</a>"
+
+
 # ============================================================
 # ROUTES — CLICK TO'LOV TIZIMI
 # ============================================================
@@ -382,9 +406,15 @@ def click_callback():
         if request.method == "GET":
             return jsonify({"error": 0, "error_note": "Success"})
 
+        # Collect data from all possible sources (form, args, json)
         data = request.form.to_dict()
         if not data:
             data = request.get_json(silent=True) or {}
+        
+        # Merge with query args just in case
+        for k, v in request.args.items():
+            if k not in data:
+                data[k] = v
 
         action = data.get("action", "")
         merchant_trans_id = data.get("merchant_trans_id", "")

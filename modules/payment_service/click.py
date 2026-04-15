@@ -259,12 +259,12 @@ class ClickPaymentProvider(PaymentProvider):
         log_transaction("click", merchant_trans_id, "prepared",
                         received_amount, click_trans_id)
 
-        # Click requires merchant_prepare_id in response. If the payment record ID is a UUID/string, we can use it.
-        # But click often prefers integer or shorter strings. In this system payment_id is used.
+        # Click requires merchant_prepare_id in response. 
+        # We must return the same ID we saved (the payment['id']) for consistency.
         response = {
             "click_trans_id": int(click_trans_id),
             "merchant_trans_id": merchant_trans_id,
-            "merchant_prepare_id": merchant_trans_id,  # using order_id as prepare_id for simplicity and valid format
+            "merchant_prepare_id": payment.get("id"), 
             "error": CLICK_ERROR_SUCCESS,
             "error_note": "Success",
         }
