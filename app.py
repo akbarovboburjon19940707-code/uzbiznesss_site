@@ -369,50 +369,40 @@ def api_click_create_payment():
         }), 500
 
 
+@app.route("/click/prepare", methods=["POST"])
+@app.route("/click/complete", methods=["POST"])
 @app.route("/click/callback", methods=["POST"])
 @csrf.exempt
 def click_callback():
     """
-    Click Shop API callback endpoint.
-    Click serveri bu URL ga Prepare (action=0) va Complete (action=1) so'rovlarini yuboradi.
-    
-    MUHIM: Bu endpoint Click serveri tomonidan chaqiriladi, foydalanuvchi tomonidan EMAS.
-    CSRF himoyasi o'chirilgan chunki Click serveridan keladi.
+    Click Shop API endpoint for both Prepare and Complete.
     """
     try:
-        # Click POST form data yuboradi
         data = request.form.to_dict()
-
         if not data:
-            # Fallback: JSON body bo'lishi mumkin
             data = request.get_json(silent=True) or {}
 
         action = data.get("action", "")
         merchant_trans_id = data.get("merchant_trans_id", "")
         remote_addr = request.remote_addr
 
-        logger.info(f"Click callback: action={action}, "
-                    f"order={merchant_trans_id}, ip={remote_addr}")
+        logger.info(f"Click callback: action={action}, order={merchant_trans_id}, ip={remote_addr}")
 
-        # Click provider orqali callback ni qayta ishlash
         response = click_provider.handle_callback(data)
 
-        # Callbackni loglash
-        action_name = "prepare" if str(action) == "0" else (
-            "complete" if str(action) == "1" else "unknown"
-        )
+        # Log
+        action_name = "prepare" if str(action) == "0" else ("complete" if str(action) == "1" else "unknown")
         log_callback("click", action_name, data, response, remote_addr)
 
         return jsonify(response)
 
     except Exception as e:
         logger.error(f"Click callback xatolik: {e}", exc_info=True)
-        log_error("click", "callback_exception", str(e),
-                  request_data=request.form.to_dict())
+        log_error("click", "callback_exception", str(e), request_data=request.form.to_dict())
         return jsonify({
             "error": -6,
             "error_note": f"Internal server error: {str(e)}"
-        }), 500
+        })
 
 
 @app.route("/click/return")
