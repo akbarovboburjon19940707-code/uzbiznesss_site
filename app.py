@@ -378,6 +378,10 @@ def click_callback():
     Click Shop API endpoint for both Prepare and Complete.
     """
     try:
+        # Click verification pings might use GET
+        if request.method == "GET":
+            return jsonify({"error": 0, "error_note": "Success"})
+
         data = request.form.to_dict()
         if not data:
             data = request.get_json(silent=True) or {}
