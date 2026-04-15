@@ -369,9 +369,9 @@ def api_click_create_payment():
         }), 500
 
 
-@app.route("/click/prepare", methods=["POST"])
-@app.route("/click/complete", methods=["POST"])
-@app.route("/click/callback", methods=["POST"])
+@app.route("/click/prepare", methods=["GET", "POST"])
+@app.route("/click/complete", methods=["GET", "POST"])
+@app.route("/click/callback", methods=["GET", "POST"])
 @csrf.exempt
 def click_callback():
     """
