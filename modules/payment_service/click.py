@@ -132,6 +132,12 @@ class ClickPaymentProvider(PaymentProvider):
 
         computed_sign = hashlib.md5(sign_str.encode("utf-8")).hexdigest()
 
+        # Debug logging (safe version)
+        masked_secret = "*" * len(CLICK_SECRET_KEY)
+        debug_str = sign_str.replace(CLICK_SECRET_KEY, masked_secret)
+        logger.info(f"[CLICK SIGN DEBUG] Order: {merchant_trans_id}, Action: {action}, "
+                    f"SignStr: {debug_str}, Computed: {computed_sign}, Received: {received_sign}")
+
         if computed_sign != received_sign:
             log_error("click", "signature_invalid",
                       f"Expected: {computed_sign}, Got: {received_sign}",
