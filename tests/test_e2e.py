@@ -3,9 +3,13 @@ import requests
 import json
 import base64
 
+import uuid
+
 BASE = "http://127.0.0.1:10000"
 KEY = "7prRqng9fO7@m7Z3M%y@Oar7qZga7QkMUcky"
 auth = "Basic " + base64.b64encode(f"Paycom:{KEY}".encode()).decode()
+
+trans_id = "e2e_trans_" + uuid.uuid4().hex[:8]
 
 print("=" * 60)
 print("PAYME END-TO-END TEST")
@@ -31,7 +35,7 @@ print("2. CheckPerformTransaction: OK (allow=True)")
 # 3. CreateTransaction
 r = requests.post(f"{BASE}/payme/callback", json={
     "id": 2, "method": "CreateTransaction",
-    "params": {"id": "e2e_trans_001", "time": 1713024100000,
+    "params": {"id": trans_id, "time": 1713024100000,
                "amount": 8000000, "account": {"order_id": oid}}
 }, headers={"Authorization": auth})
 res = r.json()
@@ -42,7 +46,7 @@ print(f"3. CreateTransaction: OK (state=1, create_time={res['result']['create_ti
 # 4. PerformTransaction
 r = requests.post(f"{BASE}/payme/callback", json={
     "id": 3, "method": "PerformTransaction",
-    "params": {"id": "e2e_trans_001"}
+    "params": {"id": trans_id}
 }, headers={"Authorization": auth})
 res = r.json()
 assert "result" in res, f"Expected result, got: {res}"
@@ -52,7 +56,7 @@ print(f"4. PerformTransaction: OK (state=2, perform_time={res['result']['perform
 # 5. CheckTransaction
 r = requests.post(f"{BASE}/payme/callback", json={
     "id": 4, "method": "CheckTransaction",
-    "params": {"id": "e2e_trans_001"}
+    "params": {"id": trans_id}
 }, headers={"Authorization": auth})
 res = r.json()
 assert "result" in res, f"Expected result, got: {res}"
@@ -63,7 +67,7 @@ print(f"5. CheckTransaction: OK (state={res['result']['state']})")
 # 6. CancelTransaction (after perform = state -2)
 r = requests.post(f"{BASE}/payme/callback", json={
     "id": 5, "method": "CancelTransaction",
-    "params": {"id": "e2e_trans_001", "reason": 5}
+    "params": {"id": trans_id, "reason": 5}
 }, headers={"Authorization": auth})
 res = r.json()
 assert "result" in res, f"Expected result, got: {res}"
@@ -73,7 +77,7 @@ print(f"6. CancelTransaction (after perform): OK (state={res['result']['state']}
 # 7. CheckTransaction after cancel
 r = requests.post(f"{BASE}/payme/callback", json={
     "id": 6, "method": "CheckTransaction",
-    "params": {"id": "e2e_trans_001"}
+    "params": {"id": trans_id}
 }, headers={"Authorization": auth})
 res = r.json()
 assert "result" in res, f"Expected result, got: {res}"
