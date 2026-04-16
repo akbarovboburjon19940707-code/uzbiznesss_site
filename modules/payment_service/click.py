@@ -532,7 +532,7 @@ class ClickPaymentProvider(PaymentProvider):
         return {
             "click_trans_id": ct_id,
             "merchant_trans_id": str(merchant_trans_id),
-            "merchant_prepare_id": None,
+            "merchant_prepare_id": "",
             "error": error_code,
             "error_note": error_note,
         }

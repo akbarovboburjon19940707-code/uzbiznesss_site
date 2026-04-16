@@ -403,15 +403,6 @@ def click_callback():
     Click bu endpointga POST qiladi. GET = health check.
     """
     try:
-        # Click verification pings / health check
-        if request.method == "GET":
-            return jsonify({
-                "click_trans_id": 0,
-                "merchant_trans_id": "",
-                "error": 0,
-                "error_note": "Success"
-            })
-
         # Ma'lumotlarni to'plash (Click POST form data yuboradi)
         data = request.form.to_dict()
         if not data:
@@ -423,8 +414,19 @@ def click_callback():
                 data[k] = v
 
         action = data.get("action", "")
+        click_trans_id = data.get("click_trans_id", "")
         merchant_trans_id = data.get("merchant_trans_id", "")
         remote_addr = request.remote_addr
+
+        # Click verification pings / health check (GET yoki bo'sh POST form)
+        if request.method == "GET" or (not action and not click_trans_id):
+            return jsonify({
+                "click_trans_id": 0,
+                "merchant_trans_id": "",
+                "merchant_prepare_id": "",
+                "error": 0,
+                "error_note": "Success"
+            })
 
         logger.info(f"[CLICK CALLBACK] action={action}, "
                     f"order={merchant_trans_id}, ip={remote_addr}")
@@ -447,6 +449,7 @@ def click_callback():
         return jsonify({
             "click_trans_id": 0,
             "merchant_trans_id": "",
+            "merchant_prepare_id": "",
             "error": -6,
             "error_note": "Internal server error"
         })
