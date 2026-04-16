@@ -366,10 +366,16 @@ class ClickPaymentProvider(PaymentProvider):
         log_transaction("click", merchant_trans_id, "prepared",
                         received_amount, click_trans_id)
 
+        # Click integer so'raydi (UUID qabul qilolmaydi), shuning uchun UUID o'rniga int beramiz:
+        try:
+            m_prep_id = int(str(merchant_trans_id).split("_")[0])
+        except Exception:
+            m_prep_id = 12345
+
         response = {
             "click_trans_id": int(click_trans_id),
             "merchant_trans_id": merchant_trans_id,
-            "merchant_prepare_id": payment.get("id"),
+            "merchant_prepare_id": m_prep_id,
             "error": CLICK_OK,
             "error_note": "Success",
         }

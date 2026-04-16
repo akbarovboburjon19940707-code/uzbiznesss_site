@@ -180,7 +180,7 @@ class TestClickCallbackHandler(unittest.TestCase):
 
         result = self.provider.handle_callback(data)
         self.assertEqual(result["error"], 0)
-        self.assertEqual(result["merchant_prepare_id"], "pay123")
+        self.assertEqual(result["merchant_prepare_id"], 12345)  # order_001 pars bo'lmagani uchun 12345 қайтарди
 
     @patch("modules.payment_service.click.ClickPaymentProvider.verify_signature")
     @patch("modules.payment.get_payment_by_order_id")
