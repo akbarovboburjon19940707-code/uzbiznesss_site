@@ -699,29 +699,5 @@
     "payme_perform_time": 1776321787596,
     "payme_cancel_time": 1776321787635,
     "payme_cancel_reason": 5
-  },
-  "76ec69f5-74c": {
-    "id": "76ec69f5-74c",
-    "order_id": "1776321787_1c9f",
-    "user_name": "Click E2E",
-    "loyiha_nomi": "Test",
-    "product_id": null,
-    "amount": 80000,
-    "payment_provider": "click",
-    "payment_status": "pending",
-    "status": "pending",
-    "receipt_file": null,
-    "created_at": "2026-04-16 11:43:07",
-    "submitted_at": null,
-    "reviewed_at": null,
-    "updated_at": null,
-    "admin_note": "",
-    "click_trans_id": null,
-    "merchant_prepare_id": null,
-    "payme_trans_id": null,
-    "payme_create_time": null,
-    "payme_perform_time": null,
-    "payme_cancel_time": null,
-    "payme_cancel_reason": null
   }
 }

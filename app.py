@@ -399,19 +399,25 @@ def api_click_create_payment():
 @csrf.exempt
 def click_callback():
     """
-    Click Shop API endpoint for both Prepare and Complete.
+    Click Shop API endpoint — Prepare (action=0) va Complete (action=1).
+    Click bu endpointga POST qiladi. GET = health check.
     """
     try:
-        # Click verification pings might use GET
+        # Click verification pings / health check
         if request.method == "GET":
-            return jsonify({"error": 0, "error_note": "Success"})
+            return jsonify({
+                "click_trans_id": 0,
+                "merchant_trans_id": "",
+                "error": 0,
+                "error_note": "Success"
+            })
 
-        # Collect data from all possible sources (form, args, json)
+        # Ma'lumotlarni to'plash (Click POST form data yuboradi)
         data = request.form.to_dict()
         if not data:
             data = request.get_json(silent=True) or {}
-        
-        # Merge with query args just in case
+
+        # Query parameterlarni merge qilish
         for k, v in request.args.items():
             if k not in data:
                 data[k] = v
@@ -420,22 +426,29 @@ def click_callback():
         merchant_trans_id = data.get("merchant_trans_id", "")
         remote_addr = request.remote_addr
 
-        logger.info(f"Click callback: action={action}, order={merchant_trans_id}, ip={remote_addr}")
+        logger.info(f"[CLICK CALLBACK] action={action}, "
+                    f"order={merchant_trans_id}, ip={remote_addr}")
 
+        # Click provider ga yuborish
         response = click_provider.handle_callback(data)
 
-        # Log
-        action_name = "prepare" if str(action) == "0" else ("complete" if str(action) == "1" else "unknown")
+        # Qo'shimcha log
+        action_name = ("prepare" if str(action) == "0" 
+                       else "complete" if str(action) == "1" 
+                       else "unknown")
         log_callback("click", action_name, data, response, remote_addr)
 
         return jsonify(response)
 
     except Exception as e:
-        logger.error(f"Click callback xatolik: {e}", exc_info=True)
-        log_error("click", "callback_exception", str(e), request_data=request.form.to_dict())
+        logger.error(f"[CLICK CALLBACK] Kutilmagan xatolik: {e}", exc_info=True)
+        log_error("click", "callback_exception", str(e),
+                  request_data=request.form.to_dict())
         return jsonify({
+            "click_trans_id": 0,
+            "merchant_trans_id": "",
             "error": -6,
-            "error_note": f"Internal server error: {str(e)}"
+            "error_note": "Internal server error"
         })
 
 
@@ -473,7 +486,7 @@ def api_secure_download(order_id):
     if not payment:
         return jsonify({"success": False, "error": "Buyurtma topilmadi"}), 404
 
-    if payment.get("payment_status") != "success":
+    if payment.get("payment_status") not in ("success",):
         return jsonify({
             "success": False,
             "error": "To'lov tasdiqlanmagan. Hujjatni yuklab olish mumkin emas."
@@ -538,25 +551,34 @@ def api_payme_create_payment():
 @app.route("/payme/callback", methods=["POST"])
 @csrf.exempt
 def payme_callback():
-    """Payme JSON-RPC callback handler"""
+    """
+    Payme JSON-RPC callback handler.
+    Payme bu endpointga JSON-RPC 2.0 formatida POST qiladi.
+    Auth: Basic base64(Paycom:KEY)
+    """
     data = {}
     try:
         data = request.get_json(silent=True) or {}
         auth_header = request.headers.get("Authorization", "")
+        remote_addr = request.remote_addr
+        method = data.get("method", "unknown")
+
+        logger.info(f"[PAYME CALLBACK] method={method}, ip={remote_addr}")
 
         from modules.payment_service.payme import payme_provider
         response = payme_provider.handle_callback(data, auth_header)
-        
-        # Log response handled inside payme.py provider and logger
+
         return jsonify(response)
 
     except Exception as e:
-        logger.error(f"Payme callback kutilmagan xatolik: {e}", exc_info=True)
+        logger.error(f"[PAYME CALLBACK] Kutilmagan xatolik: {e}", exc_info=True)
+        log_error("payme", "callback_exception", str(e),
+                  request_data=data)
         return jsonify({
             "error": {
                 "code": -32400,
                 "message": {
-                    "ru": "Internal server error",
+                    "ru": "Внутренняя ошибка сервера",
                     "uz": "Ichki server xatoligi",
                     "en": "Internal server error"
                 }
