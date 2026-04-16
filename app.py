@@ -32,7 +32,8 @@ from modules.payment import (
     get_all_payments, save_receipt_file, verify_admin_password,
     submit_receipt, RECEIPTS_DIR, get_payment_card_info,
     create_click_payment, get_payment_by_order_id,
-    get_payment_by_click_status, PLAN_PRICE
+    get_payment_by_click_status, PLAN_PRICE,
+    get_payment_full_status
 )
 from modules.payment_service.click import click_provider
 from modules.payment_logger import log_callback, log_error
@@ -261,15 +262,14 @@ def api_payment_submit():
 @app.route("/api/payment/status/<payment_id>", methods=["GET"])
 @csrf.exempt
 def api_payment_status(payment_id):
-    """Foydalanuvchi to'lov holatini tekshirishi uchun."""
-    payment = get_payment(payment_id)
-    if not payment:
-         return jsonify({"success": False, "error": "To'lov topilmadi"}), 404
-    return jsonify({
-        "success": True, 
-        "status": payment["status"], 
-        "admin_note": payment.get("admin_note", "")
-    })
+    """
+    Universal to'lov holati — Card, Click, Payme barchasi uchun.
+    Frontend polling uchun ishlatadi.
+    """
+    result = get_payment_full_status(payment_id)
+    if not result.get("success"):
+        return jsonify(result), 404
+    return jsonify(result)
 
 
 # ============================================================

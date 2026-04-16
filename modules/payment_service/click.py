@@ -348,10 +348,15 @@ class ClickPaymentProvider(PaymentProvider):
         if current_status == "preparing" and payment.get("click_trans_id") == click_trans_id:
             logger.info(f"[CLICK PREPARE] Idempotent response: "
                         f"order={merchant_trans_id}")
+            # Saqlangan integer prepare_id ni qaytarish
+            stored_prep_id = payment.get("merchant_prepare_id")
+            if stored_prep_id is None:
+                from modules.payment import _next_prepare_id
+                stored_prep_id = _next_prepare_id()
             response = {
                 "click_trans_id": int(click_trans_id),
                 "merchant_trans_id": merchant_trans_id,
-                "merchant_prepare_id": payment.get("id"),
+                "merchant_prepare_id": int(stored_prep_id),
                 "error": CLICK_OK,
                 "error_note": "Success",
             }
@@ -366,11 +371,21 @@ class ClickPaymentProvider(PaymentProvider):
         log_transaction("click", merchant_trans_id, "prepared",
                         received_amount, click_trans_id)
 
-        # Click integer so'raydi (UUID qabul qilolmaydi), shuning uchun UUID o'rniga int beramiz:
-        try:
-            m_prep_id = int(str(merchant_trans_id).split("_")[0])
-        except Exception:
-            m_prep_id = 12345
+        # Click integer merchant_prepare_id talab qiladi
+        # Auto-increment counter ishlatamiz (UUID qabul qilolmaydi)
+        from modules.payment import _next_prepare_id
+        m_prep_id = _next_prepare_id()
+
+        # prepare_id ni payment yozuvida saqlash
+        from modules.payment import get_payment_by_order_id, _payments_lock, _load_payments, _save_payments
+        with _payments_lock:
+            payments = _load_payments()
+            for pid, p in payments.items():
+                if p.get("order_id") == merchant_trans_id:
+                    p["merchant_prepare_id"] = m_prep_id
+                    payments[pid] = p
+                    break
+            _save_payments(payments)
 
         response = {
             "click_trans_id": int(click_trans_id),

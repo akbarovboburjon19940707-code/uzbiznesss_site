@@ -43,6 +43,7 @@ PAYMENTS_FILE = os.path.join(PAYMENTS_DIR, "payments.json")
 PAYMENTS_BACKUP = os.path.join(PAYMENTS_DIR, "payments_backup.json")
 RECEIPTS_DIR = os.path.join(PAYMENTS_DIR, "receipts")
 ORDER_COUNTER_FILE = os.path.join(PAYMENTS_DIR, "order_counter.json")
+PREPARE_ID_FILE = os.path.join(PAYMENTS_DIR, "prepare_id_counter.json")
 
 # Papkalarni yaratish
 os.makedirs(PAYMENTS_DIR, exist_ok=True)
@@ -137,6 +138,26 @@ def _generate_order_id() -> str:
 def _now() -> str:
     """Hozirgi vaqtni formatted string sifatida qaytarish."""
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _next_prepare_id() -> int:
+    """
+    Click uchun unikal integer merchant_prepare_id generatsiya.
+    Click API faqat integer qabul qiladi — UUID yoki string emas.
+    Auto-increment counter JSON faylda saqlanadi.
+    """
+    try:
+        counter = 1
+        if os.path.exists(PREPARE_ID_FILE):
+            with open(PREPARE_ID_FILE, "r") as f:
+                data = json.load(f)
+                counter = data.get("counter", 0) + 1
+        with open(PREPARE_ID_FILE, "w") as f:
+            json.dump({"counter": counter}, f)
+        return counter
+    except Exception as e:
+        logger.error(f"[PAYMENTS] prepare_id counter xatolik: {e}")
+        return int(time.time()) % 1000000
 
 
 # ============================================================
@@ -251,6 +272,55 @@ def get_payment(payment_id: str) -> Optional[dict]:
     with _payments_lock:
         payments = _load_payments()
         return payments.get(payment_id)
+
+
+def get_payment_full_status(payment_id: str) -> dict:
+    """
+    To'lov holatini to'liq qaytarish — Card, Click, Payme barchasi uchun.
+    Frontend polling uchun universal endpoint.
+    """
+    payment = get_payment(payment_id)
+    if not payment:
+        return {"success": False, "error": "To'lov topilmadi"}
+
+    provider = payment.get("payment_provider", "card")
+    payment_status = payment.get("payment_status", "pending")
+    admin_status = payment.get("status", "pending")
+
+    # Click/Payme: payment_status=success → tasdiq
+    # Card: admin status=approved → tasdiq
+    is_approved = False
+    if provider in ("click", "payme"):
+        is_approved = payment_status == "success"
+    else:
+        is_approved = admin_status == "approved"
+
+    is_rejected = False
+    if provider in ("click", "payme"):
+        is_rejected = payment_status in ("failed", "cancelled")
+    else:
+        is_rejected = admin_status == "rejected"
+
+    # Universal status
+    if is_approved:
+        unified_status = "approved"
+    elif is_rejected:
+        unified_status = "rejected"
+    elif payment_status == "preparing":
+        unified_status = "processing"
+    else:
+        unified_status = "pending"
+
+    return {
+        "success": True,
+        "status": unified_status,
+        "payment_status": payment_status,
+        "payment_provider": provider,
+        "admin_note": payment.get("admin_note", ""),
+        "payment_id": payment_id,
+        "order_id": payment.get("order_id"),
+        "amount": payment.get("amount", 0),
+    }
 
 
 def get_all_payments() -> List[dict]:
