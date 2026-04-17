@@ -97,7 +97,7 @@ class FinancialEngine:
         self.bank = str(p.get("bank", ""))
         self.stir = str(p.get("stir", ""))
         self.jshshir = str(p.get("jshshir", ""))
-        self.faoliyat = str(p.get("faoliyat", ""))
+        self.faoliyat = str(p.get("faoliyat_turi_text", p.get("faoliyat", "")))
         self.mulk = str(p.get("mulk", ""))
         self.fio = str(p.get("fio", ""))
         self.pasport = str(p.get("pasport", ""))
