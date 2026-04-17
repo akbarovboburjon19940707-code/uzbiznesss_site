@@ -162,18 +162,18 @@ error_note=User cancelled payment
 
 ### 1.5 Click Error Codes
 
-| Code | Ma'nosi |
-|------|---------|
-| 0 | Success |
-| -1 | SIGN CHECK FAILED |
-| -2 | Incorrect amount |
-| -3 | Action not found |
-| -4 | Already paid |
-| -5 | Order not found |
-| -6 | Transaction error |
-| -7 | Update failed |
-| -8 | Request error |
-| -9 | Transaction cancelled |
+| Code | Ma'nosi               |
+|------|-----------------------|
+| 0    | Success               |
+| -1   | SIGN CHECK FAILED     |
+| -2   | Incorrect amount      |
+| -3   | Action not found      |
+| -4   | Already paid          |
+| -5   | Order not found       |
+| -6   | Transaction error     |
+| -7   | Update failed         |
+| -8   | Request error         |
+| -9   | Transaction cancelled |
 
 ---
 
@@ -389,30 +389,30 @@ Payme JSON-RPC 2.0 formatida yuboradi.
 
 ### 2.4 Payme Transaction States
 
-| State | Ma'nosi |
-|-------|---------|
-| 1 | Created (kutmoqda) |
-| 2 | Performed (bajarildi) |
-| -1 | Cancelled before perform |
-| -2 | Cancelled after perform (refund) |
+| State | Ma'nosi                          |
+|-------|----------------------------------|
+| 1     | Created (kutmoqda)               |
+| 2     | Performed (bajarildi)            |
+| -1    | Cancelled before perform         |
+| -2    | Cancelled after perform (refund) |
 
 ---
 
 ## 3. To'lov holatlari (Database)
 
-```
+```text
 pending → preparing → success → [approved]
                    ↘ cancelled → [rejected]
                    ↘ failed → [rejected]
 ```
 
-| payment_status | status (umumiy) | Ma'nosi |
-|----------------|-----------------|---------|
-| pending | pending | Yaratildi, kutmoqda |
-| preparing | reviewing | Click/Payme tranzaksiya yaratildi |
-| success | approved | To'lov muvaffaqiyatli |
-| failed | rejected | To'lov muvaffaqiyatsiz |
-| cancelled | rejected | Bekor qilindi |
+| payment_status | status (umumiy) | Ma'nosi                           |
+|----------------|-----------------|-----------------------------------|
+| pending        | pending         | Yaratildi, kutmoqda               |
+| preparing      | reviewing       | Click/Payme tranzaksiya yaratildi |
+| success        | approved        | To'lov muvaffaqiyatli             |
+| failed         | rejected        | To'lov muvaffaqiyatsiz            |
+| cancelled      | rejected        | Bekor qilindi                     |
 
 ---
 
