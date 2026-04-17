@@ -53,8 +53,52 @@
 
                 <!-- STEP 1: Korxona Ma'lumotlari + Loyiha Konsepsiyasi -->
                 <div class="form-step" id="step1">
-                    <!-- ═══ BLOK 1: Korxona Ma'lumotlari ═══ -->
+                    <!-- ═══ BLOK 2: Loyiha Konsepsiyasi ═══ -->
                     <div class="glass-card active">
+                        <div class="section-head">
+                            <div class="icon-wrap">📋</div>
+                            <div>
+                                <h2>Loyiha Konsepsiyasi</h2>
+                                <p>Biznes loyiha yo'nalishini va asosiy strategiyasini belgilang</p>
+                            </div>
+                        </div>
+
+                        <div class="field-grid">
+                            <div class="input-box full-span">
+                                <label>Biznes loyiha nomi <span class="req">*</span></label>
+                                <div style="position:relative">
+                                    <input type="text" name="loyiha_nomi" id="loyiha_nomi" class="input-ctrl" placeholder="Masalan: Mebel ishlab chiqarish sexi..." required autocomplete="off">
+                                    <div class="autocomplete-dropdown" id="autocompleteDropdown"></div>
+                                </div>
+                            </div>
+
+                            <div class="input-box full-span">
+                                <label>Faoliyat yo'nalishi <span class="req">*</span></label>
+                                <input type="hidden" name="faoliyat_turi" id="faoliyat_turi_hidden" value="">
+                                <div class="type-grid" id="faoliyatCards">
+                                    <div class="type-card" data-type="ishlab_chiqarish" onclick="selectFaoliyat('ishlab_chiqarish')">
+                                        <span class="emoji">🏭</span>
+                                        <span class="name">Ishlab chiqarish</span>
+                                    </div>
+                                    <div class="type-card" data-type="qishloq_xojaligi" onclick="selectFaoliyat('qishloq_xojaligi')">
+                                        <span class="emoji">🌾</span>
+                                        <span class="name">Qishloq xo'jaligi</span>
+                                    </div>
+                                    <div class="type-card" data-type="savdo" onclick="selectFaoliyat('savdo')">
+                                        <span class="emoji">🏪</span>
+                                        <span class="name">Savdo turlari</span>
+                                    </div>
+                                    <div class="type-card" data-type="xizmat" onclick="selectFaoliyat('xizmat')">
+                                        <span class="emoji">🍽</span>
+                                        <span class="name">Xizmat ko'rsatish</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ BLOK 1: Korxona Ma'lumotlari ═══ -->
+                    <div class="glass-card" style="margin-top:24px">
                         <div class="section-head">
                             <div class="icon-wrap">🏢</div>
                             <div>
@@ -178,50 +222,6 @@
                             <div class="input-box">
                                 <label>Kim tomonidan va qachon berilgan</label>
                                 <input type="text" name="berilgan_vaqti" class="input-ctrl" placeholder="Masalan: 01.01.2020, Toshkent sh. IIBB">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ═══ BLOK 2: Loyiha Konsepsiyasi ═══ -->
-                    <div class="glass-card" style="margin-top:24px">
-                        <div class="section-head">
-                            <div class="icon-wrap">📋</div>
-                            <div>
-                                <h2>Loyiha Konsepsiyasi</h2>
-                                <p>Biznes loyiha yo'nalishini va asosiy strategiyasini belgilang</p>
-                            </div>
-                        </div>
-
-                        <div class="field-grid">
-                            <div class="input-box full-span">
-                                <label>Biznes loyiha nomi <span class="req">*</span></label>
-                                <div style="position:relative">
-                                    <input type="text" name="loyiha_nomi" id="loyiha_nomi" class="input-ctrl" placeholder="Masalan: Mebel ishlab chiqarish sexi..." required autocomplete="off">
-                                    <div class="autocomplete-dropdown" id="autocompleteDropdown"></div>
-                                </div>
-                            </div>
-
-                            <div class="input-box full-span">
-                                <label>Faoliyat yo'nalishi <span class="req">*</span></label>
-                                <input type="hidden" name="faoliyat_turi" id="faoliyat_turi_hidden" value="">
-                                <div class="type-grid" id="faoliyatCards">
-                                    <div class="type-card" data-type="ishlab_chiqarish" onclick="selectFaoliyat('ishlab_chiqarish')">
-                                        <span class="emoji">🏭</span>
-                                        <span class="name">Ishlab chiqarish</span>
-                                    </div>
-                                    <div class="type-card" data-type="qishloq_xojaligi" onclick="selectFaoliyat('qishloq_xojaligi')">
-                                        <span class="emoji">🌾</span>
-                                        <span class="name">Qishloq xo'jaligi</span>
-                                    </div>
-                                    <div class="type-card" data-type="savdo" onclick="selectFaoliyat('savdo')">
-                                        <span class="emoji">🏪</span>
-                                        <span class="name">Savdo turlari</span>
-                                    </div>
-                                    <div class="type-card" data-type="xizmat" onclick="selectFaoliyat('xizmat')">
-                                        <span class="emoji">🍽</span>
-                                        <span class="name">Xizmat ko'rsatish</span>
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
