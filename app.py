@@ -551,14 +551,23 @@ def api_payme_create_payment():
         }), 500
 
 
-@app.route("/payme/callback", methods=["POST"])
+@app.route("/payme/callback", methods=["GET", "POST"])
 @csrf.exempt
 def payme_callback():
     """
     Payme JSON-RPC callback handler.
     Payme bu endpointga JSON-RPC 2.0 formatida POST qiladi.
     Auth: Basic base64(Paycom:KEY)
+    GET = health check / endpoint verification.
     """
+    # GET — health check (Payme endpoint tekshiruvi uchun)
+    if request.method == "GET":
+        return jsonify({
+            "success": True,
+            "service": "Payme Merchant API",
+            "status": "active"
+        })
+
     data = {}
     try:
         data = request.get_json(silent=True) or {}
