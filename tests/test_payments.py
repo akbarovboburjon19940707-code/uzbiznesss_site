@@ -450,9 +450,9 @@ class TestPaymentURL(unittest.TestCase):
         from modules.payment_service.payme import PaymePaymentProvider
         provider = PaymePaymentProvider()
         url = provider.create_payment_url("order_001", 80000.0)
-        self.assertIn("checkout.paycom.uz", url)
+        self.assertIn("paycom.uz", url)
         # Base64 encoded params bo'lishi kerak
-        self.assertTrue(len(url) > len("https://checkout.paycom.uz/"))
+        self.assertTrue(len(url) > len("https://test.paycom.uz/"))
 
 
 class TestErrorResponse(unittest.TestCase):

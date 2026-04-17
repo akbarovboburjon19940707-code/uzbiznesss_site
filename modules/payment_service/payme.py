@@ -54,7 +54,8 @@ ERR_INVALID_ACCOUNT = -31050
 ERR_ALREADY_DONE = -31099
 
 # ── Constants ──────────────────────────────────────────────────
-PAYME_PAYMENT_URL = "https://checkout.paycom.uz"
+PAYME_TEST_MODE = os.environ.get("PAYME_TEST_MODE", "false").lower() in ("true", "1", "yes")
+PAYME_PAYMENT_URL = "https://test.paycom.uz" if PAYME_TEST_MODE else "https://checkout.paycom.uz"
 TRANSACTION_TIMEOUT_MS = 43_200_000  # 12 soat
 
 
@@ -96,7 +97,7 @@ class PaymePaymentProvider(PaymentProvider):
         # Payme tiyinlarda ishlaydi (1 so'm = 100 tiyin)
         tiyins = int(amount * 100)
 
-        params_str = f"m={PAYME_MERCHANT_ID};ac.order_id={order_id};a={tiyins}"
+        params_str = f"m={PAYME_MERCHANT_ID};ac._id={order_id};a={tiyins}"
         if return_url:
             params_str += f";c={return_url}"
 
@@ -249,7 +250,7 @@ class PaymePaymentProvider(PaymentProvider):
         from modules.payment import get_payment_by_order_id
 
         account = params.get("account", {})
-        order_id = str(account.get("order_id", ""))
+        order_id = str(account.get("_id", ""))
         amount = params.get("amount", 0)
 
         logger.info(f"[PAYME CheckPerform] order={order_id}, amount={amount}")
@@ -327,7 +328,7 @@ class PaymePaymentProvider(PaymentProvider):
 
         trans_id = params.get("id", "")
         account = params.get("account", {})
-        order_id = str(account.get("order_id", ""))
+        order_id = str(account.get("_id", ""))
         amount = params.get("amount", 0)
         create_time_from_payme = params.get("time")
 
