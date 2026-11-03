@@ -56,29 +56,40 @@ app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB
 
 # ── DATABASE (SQLAlchemy + MySQL/PostgreSQL) ──
 from database import init_db, db
-init_db(app)
+try:
+    init_db(app)
+except Exception as _dbe:
+    logging.getLogger(__name__).warning(f"[DB] Init xatolik: {_dbe}")
 
 # ── DATABASE FIX: product_id FK ni olib tashlash (bir martalik) ──
-with app.app_context():
-    try:
-        from sqlalchemy import text as _text, inspect as _inspect
-        _db_url = str(db.engine.url)
-        if 'postgresql' in _db_url or 'postgres' in _db_url:
-            db.session.execute(_text(
-                'ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_product_id_fkey'
-            ))
-            db.session.commit()
-            logging.getLogger(__name__).info("[DB FIX] payments_product_id_fkey olib tashlandi (agar mavjud bo'lsa).")
-    except Exception as _e:
-        db.session.rollback()
-        logging.getLogger(__name__).warning(f"[DB FIX] FK olib tashlashda xatolik (ehtimol allaqachon yo'q): {_e}")
+try:
+    with app.app_context():
+        try:
+            from sqlalchemy import text as _text
+            _db_url = str(db.engine.url)
+            if 'postgresql' in _db_url or 'postgres' in _db_url:
+                db.session.execute(_text(
+                    'ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_product_id_fkey'
+                ))
+                db.session.commit()
+                logging.getLogger(__name__).info("[DB FIX] payments_product_id_fkey olib tashlandi (agar mavjud bo'lsa).")
+        except Exception as _e:
+            db.session.rollback()
+except Exception as _e2:
+    pass
 
 # ── CATALOG INIT (JSON → SQL migratsiya + R2 sozlash) ──
-init_catalog(app)
+try:
+    init_catalog(app)
+except Exception as _ce:
+    logging.getLogger(__name__).warning(f"[CATALOG] Init xatolik: {_ce}")
 
 # ── ADMIN SEED (Birinchi admin yaratish — agar yo'q bo'lsa) ──
-from modules.admin_seed import seed_admin
-seed_admin(app)
+try:
+    from modules.admin_seed import seed_admin
+    seed_admin(app)
+except Exception as _se:
+    logging.getLogger(__name__).warning(f"[ADMIN] Seed xatolik: {_se}")
 
 csrf = CSRFProtect(app)
 logging.basicConfig(level=logging.INFO,
@@ -1409,6 +1420,10 @@ def api_payment_status(payment_id):
 # ============================================================
 # ROUTES — ADMIN PANEL
 # ============================================================
+@app.route("/admin", methods=["GET"])
+def admin_redirect():
+    return redirect(url_for("admin_payments"))
+
 @app.route("/admin/payments", methods=["GET", "POST"])
 @csrf.exempt
 def admin_payments():
