@@ -70,8 +70,11 @@ def init_db(app):
     migrate.init_app(app, db)
 
     # ── Barcha modellarni Alembic uchun ro'yxatdan o'tkazish ──
-    with app.app_context():
-        import models  # noqa: F401 — modellarni import qilish Alembic migration uchun zarur
+    try:
+        with app.app_context():
+            import models  # noqa: F401 — modellarni import qilish Alembic migration uchun
+    except Exception as e:
+        logger.warning(f"[DB] Model import vaqtida xatolik (build bosqichida normal): {e}")
 
     logger.info(f"[DB] Ma'lumotlar bazasi ulandi: {'SQLite (dev)' if is_sqlite else 'Production DB'}")
     return db
