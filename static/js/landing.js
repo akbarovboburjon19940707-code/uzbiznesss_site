@@ -231,95 +231,227 @@ let _currentPayMethod = 'click';
 let _currentPaymentId = null;
 let _pollTimer = null;
 
+/* ============================================================
+   CATALOG LAZY LOADING — Kategoriya bo'yicha yuklash
+   ============================================================ */
+
 /**
- * API dan mahsulotlarni yuklash va grid ga joylashtirish
+ * Kategoriyalarni API dan yuklash va tablar yaratish
  */
 async function loadCatalogProducts() {
-    const container = document.getElementById('catalogContainer');
-    if (!container) return;
+    const tabsContainer = document.getElementById('catalogTabsContainer');
+    if (!tabsContainer) return;
 
     try {
-        const resp = await fetch('/api/catalog/products');
+        const resp = await fetch('/api/catalog/categories');
         const data = await resp.json();
 
-        if (!data.success || !data.products || data.products.length === 0) {
-            container.innerHTML = `
-                <div class="catalog-empty">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                    <p>Hozircha tayyor biznes rejalar mavjud emas</p>
-                </div>`;
+        if (!data.success || !data.categories || data.categories.length === 0) {
+            tabsContainer.innerHTML = '<p style="color:var(--gray-400);font-size:14px;">Bo\'limlar topilmadi</p>';
             return;
         }
 
-        _catalogProducts = data.products;
-        container.innerHTML = '';
-
-        // Guruhlash
-        const grouped = {};
-        _catalogProducts.forEach(p => {
-            const cat = p.category || 'Boshqa';
-            if (!grouped[cat]) grouped[cat] = [];
-            grouped[cat].push(p);
+        // Tab tugmalar yaratish
+        tabsContainer.innerHTML = '';
+        data.categories.forEach((cat, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'catalog-tab-btn' + (index === 0 ? ' active' : '');
+            btn.dataset.key = cat.key;
+            btn.innerHTML = `
+                <span class="ctb-icon">${cat.icon}</span>
+                <span class="ctb-label">${cat.label}</span>
+                <span class="ctb-count">${cat.count}</span>
+            `;
+            btn.onclick = () => selectCatalogCategory(cat.key);
+            tabsContainer.appendChild(btn);
         });
 
-        // Har bir kategoriya uchun grid yaratish
-        for (const [category, products] of Object.entries(grouped)) {
-            const catSection = document.createElement('div');
-            catSection.className = 'catalog-category-section';
-            
-            const catTitle = document.createElement('h3');
-            catTitle.className = 'catalog-category-title';
-            catTitle.innerHTML = `${category} <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>`;
-            
-            const grid = document.createElement('div');
-            grid.className = 'catalog-grid-new';
-
-            products.forEach(product => {
-                const card = document.createElement('div');
-                card.className = 'catalog-item-card';
-                card.onclick = () => openProductDetailModal(product.id);
-                
-                const ext = product.file_extension || '.pdf';
-                const size = product.file_size_formatted || '3.44 MB';
-                const views = product.views_count || 6;
-                const downloads = product.download_count || 0;
-                
-                card.innerHTML = `
-                    <div class="ci-header">
-                        <span class="ci-badge">${ext}</span>
-                        <div class="ci-actions">
-                            <button class="ci-btn-icon" onclick="event.stopPropagation();"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-                            <button class="ci-btn-icon" onclick="event.stopPropagation(); openProductDetailModal('${product.id}');"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></button>
-                        </div>
-                    </div>
-                    <div class="ci-image">
-                        <img src="${product.preview_image || '/static/img/placeholder.png'}" alt="${product.title}" loading="lazy">
-                    </div>
-                    <div class="ci-content">
-                        <h4 class="ci-title" title="${product.title}">${product.title}</h4>
-                        <div class="ci-price">${product.price_formatted}</div>
-                    </div>
-                    <div class="ci-footer">
-                        <div class="ci-stat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg> ${size}</div>
-                        <div class="ci-stat" title="Yuklab olishlar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> ${downloads}</div>
-                        <div class="ci-stat" title="Ko'rishlar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> ${views}</div>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-            
-            catSection.appendChild(catTitle);
-            catSection.appendChild(grid);
-            container.appendChild(catSection);
+        // Birinchi kategoriyani avtomatik yuklash
+        if (data.categories.length > 0) {
+            selectCatalogCategory(data.categories[0].key);
         }
 
     } catch (err) {
-        console.error('Katalog yuklanmadi:', err);
-        container.innerHTML = `
-            <div class="catalog-empty">
-                <p>Katalogni yuklashda xatolik yuz berdi</p>
-            </div>`;
+        console.error('Kategoriyalar yuklanmadi:', err);
+        tabsContainer.innerHTML = '<p style="color:var(--gray-400);">Yuklanmadi</p>';
     }
+}
+
+
+/**
+ * Kategoriyani tanlash va mahsulotlarni yuklash (lazy loading)
+ */
+async function selectCatalogCategory(folderKey) {
+    if (_currentCategory === folderKey) return; // allaqachon tanlangan
+    _currentCategory = folderKey;
+    _currentPage = 1;
+    _hasMoreProducts = false;
+
+    // Active tab ni o'zgartirish
+    document.querySelectorAll('.catalog-tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.key === folderKey);
+    });
+
+    // Konteynerdan tashqari yangilash
+    const container = document.getElementById('catalogContainer');
+    if (!container) return;
+
+    // Kesh tekshirish
+    const cacheKey = `${folderKey}_1`;
+    if (_categoryCache[cacheKey]) {
+        const cached = _categoryCache[cacheKey];
+        renderCatalogProducts(cached.products, false);
+        _hasMoreProducts = cached.has_more;
+        updateLoadMoreBtn();
+        return;
+    }
+
+    // Loading ko'rsatish
+    container.innerHTML = `
+        <div class="catalog-empty" style="padding: 60px 0;">
+            <div class="status-spinner" style="width:36px;height:36px;border:3px solid #e2e8f0;border-top-color:#3b82f6;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 14px;"></div>
+            <p style="color:var(--gray-400);font-size:14px;">Yuklanmoqda...</p>
+        </div>`;
+
+    await fetchAndRenderCategory(folderKey, 1, false);
+}
+
+
+/**
+ * API dan kategoriya mahsulotlarini yuklash
+ */
+async function fetchAndRenderCategory(folderKey, page, append) {
+    if (_loadingProducts) return;
+    _loadingProducts = true;
+
+    try {
+        const resp = await fetch(`/api/catalog/by-category/${folderKey}?page=${page}&per_page=20`);
+        const data = await resp.json();
+
+        if (!data.success) {
+            if (!append) {
+                document.getElementById('catalogContainer').innerHTML =
+                    '<div class="catalog-empty"><p>Mahsulotlar topilmadi</p></div>';
+            }
+            return;
+        }
+
+        // Keshga saqlash
+        _categoryCache[`${folderKey}_${page}`] = data;
+
+        // _catalogProducts ni yangilash (modal uchun)
+        if (append) {
+            _catalogProducts = _catalogProducts.concat(data.products);
+        } else {
+            _catalogProducts = data.products;
+        }
+
+        _hasMoreProducts = data.has_more;
+        _currentPage = page;
+
+        renderCatalogProducts(data.products, append);
+        updateLoadMoreBtn();
+
+    } catch (err) {
+        console.error('Mahsulotlar yuklanmadi:', err);
+        if (!append) {
+            document.getElementById('catalogContainer').innerHTML =
+                '<div class="catalog-empty"><p>Yuklanishda xatolik</p></div>';
+        }
+    } finally {
+        _loadingProducts = false;
+    }
+}
+
+
+/**
+ * Mahsulot kartochkalarini DOM ga joylashtirish
+ */
+function renderCatalogProducts(products, append) {
+    const container = document.getElementById('catalogContainer');
+    if (!container) return;
+
+    if (!products || products.length === 0) {
+        if (!append) {
+            container.innerHTML = `
+                <div class="catalog-empty">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <p>Bu bo'limda hozircha mahsulot yo'q</p>
+                </div>`;
+        }
+        return;
+    }
+
+    let grid;
+    if (append) {
+        grid = container.querySelector('.catalog-grid-new');
+        if (!grid) {
+            grid = document.createElement('div');
+            grid.className = 'catalog-grid-new';
+            container.appendChild(grid);
+        }
+    } else {
+        container.innerHTML = '';
+        grid = document.createElement('div');
+        grid.className = 'catalog-grid-new';
+        container.appendChild(grid);
+    }
+
+    products.forEach(product => {
+        const card = document.createElement('div');
+        card.className = 'catalog-item-card';
+        card.onclick = () => openProductDetailModal(product.id);
+
+        const ext = product.file_extension || '.pdf';
+        const size = product.file_size_formatted || '3.44 MB';
+        const views = product.views_count || 6;
+        const downloads = product.download_count || 0;
+
+        card.innerHTML = `
+            <div class="ci-header">
+                <span class="ci-badge">${ext}</span>
+                <div class="ci-actions">
+                    <button class="ci-btn-icon" onclick="event.stopPropagation();"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+                    <button class="ci-btn-icon" onclick="event.stopPropagation(); openProductDetailModal('${product.id}');"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></button>
+                </div>
+            </div>
+            <div class="ci-image">
+                <img src="${product.preview_image || '/static/img/placeholder.png'}" alt="${product.title}" loading="lazy">
+            </div>
+            <div class="ci-content">
+                <h4 class="ci-title" title="${product.title}">${product.title}</h4>
+                <div class="ci-price">${product.price_formatted}</div>
+            </div>
+            <div class="ci-footer">
+                <div class="ci-stat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg> ${size}</div>
+                <div class="ci-stat" title="Yuklab olishlar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> ${downloads}</div>
+                <div class="ci-stat" title="Ko'rishlar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> ${views}</div>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+
+/**
+ * "Ko'proq yuklash" tugmasini yangilash
+ */
+function updateLoadMoreBtn() {
+    const wrap = document.getElementById('catalogLoadMoreWrap');
+    if (wrap) wrap.style.display = _hasMoreProducts ? 'block' : 'none';
+}
+
+
+/**
+ * Ko'proq mahsulot yuklash (pagination)
+ */
+async function loadMoreCatalogProducts() {
+    if (!_currentCategory || _loadingProducts || !_hasMoreProducts) return;
+    const nextPage = _currentPage + 1;
+    const btn = document.getElementById('catalogLoadMoreBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Yuklanmoqda...'; }
+    await fetchAndRenderCategory(_currentCategory, nextPage, true);
+    if (btn) { btn.disabled = false; btn.textContent = "Ko'proq ko'rish"; }
 }
 
 

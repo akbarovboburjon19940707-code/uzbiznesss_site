@@ -481,6 +481,163 @@ def delete_product(product_id: str) -> bool:
     return True
 
 
+
+# ══════════════════════════════════════════════════════════════
+# KATEGORIYA BO'YICHA FILTR + LAZY LOADING API
+# ══════════════════════════════════════════════════════════════
+
+# Kategoriya guruhlash xaritasi (DB dagi qiymatlar → papka nomi)
+CATEGORY_MAP = {
+    "Xizmatlar":         "xizmatlar",
+    "Ishlab chiqarish":  "ishlab_chiqarish",
+    "Transport / Lizing": "transport",
+    "Lizing":            "lizing",
+    "Qishloq xo'jaligi": "qishloq_xojaligi",
+    "Savdo":             "savdo",
+    "Ta'lim":            "talim",
+    "Umumiy":            "umumiy",
+}
+
+# Teskari xarita: papka nomi → DB category qiymati (bir papka → bir necha category)
+FOLDER_TO_CATEGORIES = {
+    "xizmatlar":        ["Xizmatlar"],
+    "ishlab_chiqarish": ["Ishlab chiqarish"],
+    "transport":        ["Transport / Lizing", "Lizing"],
+    "lizing":           ["Transport / Lizing", "Lizing"],
+    "qishloq_xojaligi": ["Qishloq xo'jaligi"],
+    "savdo":            ["Savdo"],
+    "talim":            ["Ta'lim"],
+    "umumiy":           ["Umumiy"],
+}
+
+# Frontend uchun bo'limlar ro'yxati (tartibda)
+CATALOG_SECTIONS = [
+    {"key": "xizmatlar",        "label": "Xizmatlar",        "icon": "🏢"},
+    {"key": "ishlab_chiqarish", "label": "Ishlab chiqarish", "icon": "🏭"},
+    {"key": "transport",        "label": "Transport",        "icon": "🚛"},
+    {"key": "lizing",           "label": "Lizing",           "icon": "🔑"},
+    {"key": "qishloq_xojaligi", "label": "Qishloq xo'jaligi","icon": "🌾"},
+    {"key": "savdo",            "label": "Savdo",            "icon": "🛒"},
+    {"key": "talim",            "label": "Ta'lim",           "icon": "🎓"},
+    {"key": "umumiy",           "label": "Umumiy",           "icon": "📋"},
+]
+
+
+def get_catalog_categories() -> List[dict]:
+    """
+    Mavjud kategoriyalar ro'yxatini (soni bilan) qaytarish.
+    Faqat kamida 1 ta faol mahsulot bo'lgan bo'limlar qaytariladi.
+    """
+    try:
+        from sqlalchemy import func
+        rows = (
+            db.session.query(BusinessPlan.category, func.count(BusinessPlan.id))
+            .filter(BusinessPlan.is_active == True)
+            .group_by(BusinessPlan.category)
+            .all()
+        )
+
+        # Papka bo'yicha jamlash
+        folder_counts = {}
+        for db_cat, cnt in rows:
+            folder_key = CATEGORY_MAP.get(db_cat, "umumiy")
+            folder_counts[folder_key] = folder_counts.get(folder_key, 0) + cnt
+
+        # CATALOG_SECTIONS tartibida, faqat mavjud bo'limlari
+        result = []
+        for section in CATALOG_SECTIONS:
+            key = section["key"]
+            if folder_counts.get(key, 0) > 0:
+                result.append({
+                    "key":   key,
+                    "label": section["label"],
+                    "icon":  section["icon"],
+                    "count": folder_counts[key],
+                })
+        return result
+    except Exception as e:
+        logger.error(f"[CATALOG] get_catalog_categories xatolik: {e}")
+        return []
+
+
+def get_products_by_category(
+    folder_key: str,
+    page: int = 1,
+    per_page: int = 20
+) -> dict:
+    """
+    Papka bo'yicha mahsulotlarni sahifalab qaytarish (lazy loading).
+
+    Args:
+        folder_key:  'xizmatlar', 'ishlab_chiqarish', 'transport', ...
+        page:        Sahifa raqami (1 dan boshlanadi)
+        per_page:    Bir sahifadagi mahsulot soni (max 50)
+
+    Returns:
+        {
+            "products": [...],
+            "page": 1,
+            "per_page": 20,
+            "total": 88,
+            "has_more": True
+        }
+    """
+    per_page = min(int(per_page), 50)
+    page     = max(int(page), 1)
+    offset   = (page - 1) * per_page
+
+    # Papkaga tegishli DB category qiymatlari
+    db_categories = FOLDER_TO_CATEGORIES.get(folder_key)
+    if not db_categories:
+        # Noma'lum papka — bo'sh natija
+        return {"products": [], "page": page, "per_page": per_page, "total": 0, "has_more": False}
+
+    try:
+        base_q = BusinessPlan.query.filter(
+            BusinessPlan.is_active == True,
+            BusinessPlan.category.in_(db_categories)
+        )
+        total = base_q.count()
+        bps   = base_q.order_by(BusinessPlan.created_at.desc()).offset(offset).limit(per_page).all()
+
+        products = []
+        for bp in bps:
+            # File hajmini formatlash
+            file_size_formatted = "3.44 MB"
+            if bp.file_size_bytes:
+                if bp.file_size_bytes < 1024 * 1024:
+                    file_size_formatted = f"{bp.file_size_bytes / 1024:.2f} KB"
+                else:
+                    file_size_formatted = f"{bp.file_size_bytes / (1024 * 1024):.2f} MB"
+
+            price = int(bp.price) if bp.price else 30000
+            products.append({
+                "id":                 bp.id,
+                "title":              bp.title,
+                "category":           bp.category or "Fayllar",
+                "description":        bp.description or "",
+                "price":              price,
+                "price_formatted":    f"{price:,}".replace(",", " ") + " so'm",
+                "preview_image":      bp.preview_image or "",
+                "download_count":     bp.download_count or 0,
+                "file_extension":     ".pdf",
+                "file_size_formatted": file_size_formatted,
+                "views_count":        bp.view_count or 0,
+            })
+
+        return {
+            "products": products,
+            "page":     page,
+            "per_page": per_page,
+            "total":    total,
+            "has_more": (offset + len(bps)) < total,
+        }
+
+    except Exception as e:
+        logger.error(f"[CATALOG] get_products_by_category xatolik: {e}")
+        return {"products": [], "page": page, "per_page": per_page, "total": 0, "has_more": False}
+
+
 def get_preview_page_numbers(total_pages: int, count: int = 6) -> List[int]:
     """
     PDF dan preview sahifa raqamlarini hisoblash.

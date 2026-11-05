@@ -1,5 +1,5 @@
-"""
-Biznes Reja Platformasi — Enterprise Edition v2.0
+﻿"""
+Biznes Reja Platformasi вЂ” Enterprise Edition v2.0
 ===================================================
 480 ta reja | 24 kategoriya | 4 faoliyat turi
 Annuitet + Differentsial | NPV, IRR, ROI
@@ -44,7 +44,8 @@ from modules.payment_logger import log_callback, log_error
 from modules.catalog_products import (
     get_all_products, get_product_by_id, get_product_pdf_path,
     increment_download_count, get_preview_page_numbers, CATALOG_DIR,
-    add_product, update_product, delete_product, init_catalog
+    add_product, update_product, delete_product, init_catalog,
+    get_catalog_categories, get_products_by_category
 )
 
 # ============================================================
@@ -54,7 +55,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'breja-enterprise-2026-key')
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB
 
-# ── DATABASE (SQLAlchemy + MySQL/PostgreSQL) ──
+# в”Ђв”Ђ DATABASE (SQLAlchemy + MySQL/PostgreSQL) в”Ђв”Ђ
 from database import init_db, db
 try:
     init_db(app)
@@ -63,7 +64,7 @@ except Exception as _db_err:
     logging.getLogger(__name__).warning(f"[DB] Database ulanishi hozir mavjud emas (build vaqtida normal): {_db_err}")
     _db_ready = False
 
-# ── DATABASE FIX + CATALOG + ADMIN SEED (faqat DB tayyor bo'lsa) ──
+# в”Ђв”Ђ DATABASE FIX + CATALOG + ADMIN SEED (faqat DB tayyor bo'lsa) в”Ђв”Ђ
 if _db_ready:
     # FK olib tashlash (bir martalik)
     with app.app_context():
@@ -80,15 +81,15 @@ if _db_ready:
             db.session.rollback()
             logging.getLogger(__name__).warning(f"[DB FIX] FK olib tashlashda xatolik (ehtimol allaqachon yo'q): {_e}")
 
-    # CATALOG INIT (JSON → SQL migratsiya + R2 sozlash)
+    # CATALOG INIT (JSON в†’ SQL migratsiya + R2 sozlash)
     init_catalog(app)
 
-    # ADMIN SEED (Birinchi admin yaratish — agar yo'q bo'lsa)
+    # ADMIN SEED (Birinchi admin yaratish вЂ” agar yo'q bo'lsa)
     from modules.admin_seed import seed_admin
     seed_admin(app)
 else:
     from modules.admin_seed import seed_admin
-    logging.getLogger(__name__).warning("[DB] Database tayyor emas — catalog init va admin seed o'tkazib yuborildi.")
+    logging.getLogger(__name__).warning("[DB] Database tayyor emas вЂ” catalog init va admin seed o'tkazib yuborildi.")
 
 csrf = CSRFProtect(app)
 logging.basicConfig(level=logging.INFO,
@@ -143,7 +144,7 @@ _cleanup_thread = threading.Thread(target=_periodic_cleanup, daemon=True)
 _cleanup_thread.start()
 
 # ============================================================
-# ROUTES — USER AUTH API (Mustaqil — mavjud tizimga ta'sir qilmaydi)
+# ROUTES вЂ” USER AUTH API (Mustaqil вЂ” mavjud tizimga ta'sir qilmaydi)
 # ============================================================
 @app.route("/api/auth/register", methods=["POST"])
 @csrf.exempt
@@ -248,7 +249,7 @@ def api_auth_profile():
 
 
 # ============================================================
-# ROUTES — SUBSCRIPTION & AI LIMITS API
+# ROUTES вЂ” SUBSCRIPTION & AI LIMITS API
 # ============================================================
 
 @app.route("/api/subscription/plans", methods=["GET"])
@@ -292,7 +293,7 @@ def api_subscription_status():
 @rate_limit(max_req=10, window=60)
 def api_subscription_purchase():
     """
-    Obuna sotib olish — Click, Payme yoki Card to'lov.
+    Obuna sotib olish вЂ” Click, Payme yoki Card to'lov.
     To'lov muvaffaqiyatli bo'lganda obuna avtomatik faollashtiriladi.
     """
     from modules.auth import decode_token
@@ -434,7 +435,7 @@ def api_subscription_usage():
 @app.route("/api/admin/stats", methods=["GET"])
 @csrf.exempt
 def api_admin_stats():
-    """Admin dashboard statistikasi — kengaytirilgan."""
+    """Admin dashboard statistikasi вЂ” kengaytirilgan."""
     if not session.get("admin_logged_in"):
         return jsonify({"success": False, "error": "Unauthorized"}), 401
 
@@ -460,29 +461,29 @@ def api_admin_users():
 
 
 # ============================================================
-# ROUTES — ASOSIY
+# ROUTES вЂ” ASOSIY
 # ============================================================
 @app.route("/")
 def landing():
-    """Marketing landing page — foydalanuvchilarni platformaga yo'naltiradi."""
+    """Marketing landing page вЂ” foydalanuvchilarni platformaga yo'naltiradi."""
     return render_template("landing.html")
 
 
 @app.route("/register")
 def register():
-    """Korxona ma'lumotlari endi dashboard Step 1 da — redirect."""
+    """Korxona ma'lumotlari endi dashboard Step 1 da вЂ” redirect."""
     return redirect(url_for('dashboard'))
 
 
 @app.route("/dashboard")
 def dashboard():
-    """Biznes reja platformasi — asosiy SaaS dashboard."""
+    """Biznes reja platformasi вЂ” asosiy SaaS dashboard."""
     return render_template("index.html")
 
 
 @app.route("/payment")
 def payment_page():
-    """To'lov sahifasi — alohida to'lov UI."""
+    """To'lov sahifasi вЂ” alohida to'lov UI."""
     return render_template("payment.html")
 
 
@@ -493,7 +494,7 @@ def cabinet_page():
 
 
 # ============================================================
-# ROUTES — USER CABINET API
+# ROUTES вЂ” USER CABINET API
 # ============================================================
 
 @app.route("/api/user/profile", methods=["PUT"])
@@ -890,12 +891,12 @@ def api_auth_telegram_webapp():
             _send_async(
                 telegram_id,
                 f"\U0001f389 <b>Xush kelibsiz, {_greeting_name}!</b>\n\n"
-                "✅ UzBizness platformasiga muvaffaqiyatli kirdingiz.\n\n"
-                "📋 Imkoniyatlar:\n"
-                "• 500+ biznes yo'nalishi\n"
-                "• AI yordamida biznes reja yaratish\n"
-                "• Professional moliyaviy hisob-kitoblar\n\n"
-                "🚀 Boshlash uchun dashboardga o'ting!"
+                "вњ… UzBizness platformasiga muvaffaqiyatli kirdingiz.\n\n"
+                "рџ“‹ Imkoniyatlar:\n"
+                "вЂў 500+ biznes yo'nalishi\n"
+                "вЂў AI yordamida biznes reja yaratish\n"
+                "вЂў Professional moliyaviy hisob-kitoblar\n\n"
+                "рџљЂ Boshlash uchun dashboardga o'ting!"
             )
         except Exception:
             pass
@@ -909,7 +910,7 @@ def api_auth_telegram_webapp():
 
 
 # ============================================================
-# ROUTES — TELEGRAM BOT BILDIRISHNOMALAR
+# ROUTES вЂ” TELEGRAM BOT BILDIRISHNOMALAR
 # ============================================================
 
 @app.route("/api/telegram/connect", methods=["POST"])
@@ -960,13 +961,13 @@ def api_telegram_connect():
             from modules.telegram_notifier import _send_async
             _send_async(
                 telegram_id,
-                "🔗 <b>Telegram bog'landi!</b>\n\n"
-                f"👤 Salom, {user.first_name or 'foydalanuvchi'}!\n"
-                "✅ Endi muhim xabarlarni shu yerdan olasiz:\n"
-                "• To'lov tasdiqlanganda\n"
-                "• Obuna faollashganda\n"
-                "• Muhim yangiliklar\n\n"
-                "📱 UzBizness platformasi"
+                "рџ”— <b>Telegram bog'landi!</b>\n\n"
+                f"рџ‘¤ Salom, {user.first_name or 'foydalanuvchi'}!\n"
+                "вњ… Endi muhim xabarlarni shu yerdan olasiz:\n"
+                "вЂў To'lov tasdiqlanganda\n"
+                "вЂў Obuna faollashganda\n"
+                "вЂў Muhim yangiliklar\n\n"
+                "рџ“± UzBizness platformasi"
             )
         except Exception:
             pass
@@ -1015,7 +1016,7 @@ def api_telegram_disconnect():
 
 
 # ============================================================
-# TELEGRAM BOT LOGIN — Temp Token oqimi
+# TELEGRAM BOT LOGIN вЂ” Temp Token oqimi
 # ============================================================
 
 # Xotira ichidagi temp tokenlar: {token: {status, user_data, created_at}}
@@ -1086,7 +1087,7 @@ def api_telegram_poll():
         return jsonify({"success": True, "status": "pending"})
 
     if entry['status'] == 'authenticated':
-        # Token faollashdi — JWT yaratib qaytarish
+        # Token faollashdi вЂ” JWT yaratib qaytarish
         user_data = entry['user_data']
         with _tg_tokens_lock:
             _tg_login_tokens.pop(token, None)
@@ -1132,7 +1133,7 @@ def api_telegram_poll():
 @csrf.exempt
 def api_telegram_webhook():
     """
-    Telegram Bot Webhook — botdan kelgan xabarlarni qayta ishlash.
+    Telegram Bot Webhook вЂ” botdan kelgan xabarlarni qayta ishlash.
     Bot /start login_TOKEN xabarini olganda temp tokenni faollashtiradi.
     """
     try:
@@ -1171,13 +1172,13 @@ def api_telegram_webhook():
         # Faqat "Biznes reja yaratish" tugmasi bilan keyboard
         main_keyboard = {
             "keyboard": [
-                [{"text": "📋 Biznes reja yaratish", "web_app": {"url": "https://bizplanai.uz/register"}}]
+                [{"text": "рџ“‹ Biznes reja yaratish", "web_app": {"url": "https://bizplanai.uz/register"}}]
             ],
             "resize_keyboard": True,
             "one_time_keyboard": False
         }
 
-        # /start login_TOKEN — Telegram login oqimi
+        # /start login_TOKEN вЂ” Telegram login oqimi
         if text.startswith('/start login_'):
             login_token = text[len('/start login_'):]
             with _tg_tokens_lock:
@@ -1197,31 +1198,31 @@ def api_telegram_webhook():
                             }
                         }
                     send_msg(chat_id,
-                        f"✅ <b>Muvaffaqiyatli!</b>\n\n"
-                        f"Salom, <b>{first_name or 'foydalanuvchi'}</b>! 👋\n"
+                        f"вњ… <b>Muvaffaqiyatli!</b>\n\n"
+                        f"Salom, <b>{first_name or 'foydalanuvchi'}</b>! рџ‘‹\n"
                         "UzBizness platformasiga kirdingiz.\n\n"
-                        "🌐 Brauzerga qaytib, sahifani ko'ring — kirish avtomatik amalga oshadi!",
+                        "рџЊђ Brauzerga qaytib, sahifani ko'ring вЂ” kirish avtomatik amalga oshadi!",
                         reply_markup=main_keyboard
                     )
                     logger.info(f"[TG WEBHOOK] Login token faollashdi: tg_id={tg_id}")
                 else:
-                    send_msg(chat_id, "⏰ Login so'rovining muddati o'tgan. Qaytadan urinib ko'ring.",
+                    send_msg(chat_id, "вЏ° Login so'rovining muddati o'tgan. Qaytadan urinib ko'ring.",
                              reply_markup=main_keyboard)
             else:
-                send_msg(chat_id, "❌ Noto'g'ri yoki muddati o'tgan token. Saytdan qaytadan urinib ko'ring.",
+                send_msg(chat_id, "вќЊ Noto'g'ri yoki muddati o'tgan token. Saytdan qaytadan urinib ko'ring.",
                          reply_markup=main_keyboard)
             return jsonify({"ok": True})
 
         # /start (oddiy)
         elif text == '/start':
             send_msg(chat_id,
-                f"👋 Salom, <b>{first_name or 'foydalanuvchi'}</b>!\n\n"
-                "🏢 <b>UzBizness</b> — O'zbekistondagi professional biznes reja platformasi.\n\n"
-                "📊 Imkoniyatlar:\n"
-                "• 500+ biznes yo'nalishi\n"
-                "• AI yordamida biznes reja\n"
-                "• Professional moliyaviy hisob-kitoblar\n\n"
-                "📋 Quyidagi tugmani bosib biznes reja yarating! 👇",
+                f"рџ‘‹ Salom, <b>{first_name or 'foydalanuvchi'}</b>!\n\n"
+                "рџЏў <b>UzBizness</b> вЂ” O'zbekistondagi professional biznes reja platformasi.\n\n"
+                "рџ“Љ Imkoniyatlar:\n"
+                "вЂў 500+ biznes yo'nalishi\n"
+                "вЂў AI yordamida biznes reja\n"
+                "вЂў Professional moliyaviy hisob-kitoblar\n\n"
+                "рџ“‹ Quyidagi tugmani bosib biznes reja yarating! рџ‘‡",
                 reply_markup=main_keyboard
             )
             return jsonify({"ok": True})
@@ -1236,7 +1237,7 @@ def api_telegram_webhook():
 @app.route("/api/telegram/test", methods=["POST"])
 @csrf.exempt
 def api_telegram_test():
-    """Admin uchun — Telegram xabar test."""
+    """Admin uchun вЂ” Telegram xabar test."""
     if not session.get("admin_logged_in"):
         return jsonify({"success": False, "error": "Unauthorized"}), 401
 
@@ -1254,7 +1255,7 @@ def api_telegram_test():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-# ROUTES — KATEGORIYALAR VA QIDIRISH
+# ROUTES вЂ” KATEGORIYALAR VA QIDIRISH
 # ============================================================
 @app.route("/api/categories", methods=["GET"])
 @csrf.exempt
@@ -1358,7 +1359,7 @@ def get_company_info(stir):
 
 
 # ============================================================
-# ROUTES — TO'LOV TIZIMI
+# ROUTES вЂ” TO'LOV TIZIMI
 # ============================================================
 @app.route("/api/payment/info", methods=["GET"])
 @csrf.exempt
@@ -1404,7 +1405,7 @@ def api_payment_submit():
 @csrf.exempt
 def api_payment_status(payment_id):
     """
-    Universal to'lov holati — Card, Click, Payme barchasi uchun.
+    Universal to'lov holati вЂ” Card, Click, Payme barchasi uchun.
     Frontend polling uchun ishlatadi.
     """
     result = get_payment_full_status(payment_id)
@@ -1414,7 +1415,7 @@ def api_payment_status(payment_id):
 
 
 # ============================================================
-# ROUTES — ADMIN PANEL
+# ROUTES вЂ” ADMIN PANEL
 # ============================================================
 @app.route("/admin/payments", methods=["GET", "POST"])
 @csrf.exempt
@@ -1446,7 +1447,7 @@ def api_admin_approve():
     payment_id = d.get("payment_id")
     result = admin_approve(payment_id, d.get("note", ""))
     
-    # ── Obuna to'lovi bo'lsa, avtomatik faollashtirish ──
+    # в”Ђв”Ђ Obuna to'lovi bo'lsa, avtomatik faollashtirish в”Ђв”Ђ
     if result.get("success"):
         try:
             payment = get_payment(payment_id)
@@ -1474,7 +1475,7 @@ def api_admin_approve():
         except Exception as sub_err:
             logger.error(f"[SUB] Admin approve subscription xatolik: {sub_err}", exc_info=True)
 
-        # ── Telegram bildirishnoma: to'lov tasdiqlandi ──
+        # в”Ђв”Ђ Telegram bildirishnoma: to'lov tasdiqlandi в”Ђв”Ђ
         try:
             from modules.telegram_notifier import notify_payment_approved
             _p = get_payment(payment_id)
@@ -1494,7 +1495,7 @@ def api_admin_reject():
     note = d.get("note", "")
     result = admin_reject(payment_id, note)
 
-    # ── Telegram bildirishnoma: to'lov rad etildi ──
+    # в”Ђв”Ђ Telegram bildirishnoma: to'lov rad etildi в”Ђв”Ђ
     if result.get("success"):
         try:
             from modules.telegram_notifier import notify_payment_rejected
@@ -1538,13 +1539,13 @@ def admin_logs():
 
 
 # ============================================================
-# ROUTES — ADMIN CATALOG MANAGEMENT
+# ROUTES вЂ” ADMIN CATALOG MANAGEMENT
 # ============================================================
 
 @app.route("/api/admin/catalog/products", methods=["GET"])
 @csrf.exempt
 def api_admin_catalog_list():
-    """Admin: barcha mahsulotlar (faol + nofaol) — SQL bazadan."""
+    """Admin: barcha mahsulotlar (faol + nofaol) вЂ” SQL bazadan."""
     if not session.get("admin_logged_in"):
         return jsonify({"success": False, "error": "Unauthorized"}), 401
     try:
@@ -1627,7 +1628,7 @@ def api_admin_catalog_add():
             data["id"] = product_id
 
         product = add_product(data)
-        logger.info(f"[ADMIN CATALOG] Yangi mahsulot: {product['id']} — {title}")
+        logger.info(f"[ADMIN CATALOG] Yangi mahsulot: {product['id']} вЂ” {title}")
         return jsonify({"success": True, "product": product})
 
     except Exception as e:
@@ -1744,7 +1745,7 @@ def api_admin_catalog_toggle(product_id):
 
 
 # ============================================================
-# ROUTES — CLICK TO'LOV TIZIMI
+# ROUTES вЂ” CLICK TO'LOV TIZIMI
 # ============================================================
 @app.route("/api/click/create-payment", methods=["POST"])
 @csrf.exempt
@@ -1801,7 +1802,7 @@ def api_click_create_payment():
 @csrf.exempt
 def click_callback():
     """
-    Click Shop API endpoint — Prepare (action=0) va Complete (action=1).
+    Click Shop API endpoint вЂ” Prepare (action=0) va Complete (action=1).
     Click bu endpointga POST qiladi. GET = health check.
     """
     try:
@@ -1908,7 +1909,7 @@ def api_secure_download(order_id):
 
 
 # ============================================================
-# ROUTES — PAYME TO'LOV TIZIMI
+# ROUTES вЂ” PAYME TO'LOV TIZIMI
 # ============================================================
 @app.route("/api/payme/create-payment", methods=["POST"])
 @csrf.exempt
@@ -1962,7 +1963,7 @@ def payme_callback():
     Auth: Basic base64(Paycom:KEY)
     GET = health check / endpoint verification.
     """
-    # GET — health check (Payme endpoint tekshiruvi uchun)
+    # GET вЂ” health check (Payme endpoint tekshiruvi uchun)
     if request.method == "GET":
         return jsonify({
             "success": True,
@@ -1992,7 +1993,7 @@ def payme_callback():
             "error": {
                 "code": -32400,
                 "message": {
-                    "ru": "Внутренняя ошибка сервера",
+                    "ru": "Р’РЅСѓС‚СЂРµРЅРЅСЏСЏ РѕС€РёР±РєР° СЃРµСЂРІРµСЂР°",
                     "uz": "Ichki server xatoligi",
                     "en": "Internal server error"
                 }
@@ -2003,7 +2004,7 @@ def payme_callback():
 
 
 # ============================================================
-# ROUTES — TAYYOR BIZNES REJALAR KATALOGI (MARKETPLACE)
+# ROUTES вЂ” TAYYOR BIZNES REJALAR KATALOGI (MARKETPLACE)
 # ============================================================
 
 @app.route("/api/catalog/products", methods=["GET"])
@@ -2015,6 +2016,36 @@ def api_catalog_products():
         return jsonify({"success": True, "products": products})
     except Exception as e:
         logger.error(f"Katalog xatolik: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+
+
+@app.route("/api/catalog/categories", methods=["GET"])
+@csrf.exempt
+def api_catalog_categories():
+    """Mavjud kategoriyalar royxati va soni (lazy loading uchun)."""
+    try:
+        cats = get_catalog_categories()
+        return jsonify({"success": True, "categories": cats})
+    except Exception as e:
+        logger.error(f"Kategoriyalar xatolik: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/catalog/by-category/<folder_key>", methods=["GET"])
+@csrf.exempt
+def api_catalog_by_category(folder_key):
+    """Kategoriya boyicha mahsulotlar (lazy loading + pagination)."""
+    try:
+        page = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 20, type=int)
+        result = get_products_by_category(folder_key, page=page, per_page=per_page)
+        resp = jsonify({"success": True, **result})
+        resp.headers["Cache-Control"] = "public, max-age=120"
+        return resp
+    except Exception as e:
+        logger.error(f"Kategoriya mahsulotlari xatolik: {e}", exc_info=True)
         return jsonify({"success": False, "error": str(e)}), 500
 
 
@@ -2236,7 +2267,7 @@ def api_catalog_preview(product_id):
             # Cache: agar rasm allaqachon bor bo'lsa, qayta yaratmaydi
             if not os.path.exists(img_path):
                 page = doc.load_page(idx)
-                # 150 DPI — yetarli sifat preview uchun
+                # 150 DPI вЂ” yetarli sifat preview uchun
                 pix = page.get_pixmap(dpi=150)
                 pix.save(img_path)
 
@@ -2277,7 +2308,7 @@ def api_catalog_preview_image(product_id, filename):
 
 
 # ============================================================
-# ROUTES — AI & IMAGE FETCHING
+# ROUTES вЂ” AI & IMAGE FETCHING
 # ============================================================
 @app.route("/api/temp-file/<sid>/<path:filename>")
 def serve_temp_file(sid, filename):
@@ -2354,7 +2385,7 @@ def api_ai_fetch_image():
 
 
 # ============================================================
-# ROUTES — MOLIYAVIY
+# ROUTES вЂ” MOLIYAVIY
 # ============================================================
 @app.route("/api/kredit", methods=["POST"])
 @csrf.exempt
@@ -2385,7 +2416,7 @@ def api_analysis():
 
 
 # ============================================================
-# ROUTES — PREVIEW (Biznes reja oldindan ko'rish)
+# ROUTES вЂ” PREVIEW (Biznes reja oldindan ko'rish)
 # ============================================================
 @app.route("/api/preview", methods=["POST"])
 @csrf.exempt
@@ -2443,7 +2474,7 @@ def _serialize_context(ctx):
 
 
 # ============================================================
-# ROUTES — DOWNLOAD (Maxsus fayllarni yuklab olish)
+# ROUTES вЂ” DOWNLOAD (Maxsus fayllarni yuklab olish)
 # ============================================================
 @app.route("/api/download_document/<sid>/<path:filename>", methods=["GET"])
 def api_download_doc(sid, filename):
@@ -2468,7 +2499,7 @@ def api_download_doc(sid, filename):
 
 
 # ============================================================
-# ROUTES — SAVE (PDF yaratish)
+# ROUTES вЂ” SAVE (PDF yaratish)
 # ============================================================
 @app.route("/save", methods=["POST"])
 @csrf.exempt
@@ -2547,12 +2578,12 @@ def save():
                 if path:
                     uploaded_files[key] = path
             
-            # b. Agar manual yuklanmagan бўлса, СИ томонидан яратилган вақтинчалик файлни текшириш
+            # b. Agar manual yuklanmagan Р±СћР»СЃР°, РЎР С‚РѕРјРѕРЅРёРґР°РЅ СЏСЂР°С‚РёР»РіР°РЅ РІР°Т›С‚РёРЅС‡Р°Р»РёРє С„Р°Р№Р»РЅРё С‚РµРєС€РёСЂРёС€
             elif key in ['business_image', 'product_photo']:
                 ai_path = request.form.get(f"ai_{key}_path")
                 if ai_path and os.path.exists(ai_path):
-                    # Вақтинчалик файлни сессия папкасига кўчириш (агар у бошқа жойда бўлса)
-                    # Бизнинг ҳолатда у аллақачон сессия папкасида, лекин хавфсизлик учун текширамиз.
+                    # Р’Р°Т›С‚РёРЅС‡Р°Р»РёРє С„Р°Р№Р»РЅРё СЃРµСЃСЃРёСЏ РїР°РїРєР°СЃРёРіР° РєСћС‡РёСЂРёС€ (Р°РіР°СЂ Сѓ Р±РѕС€Т›Р° Р¶РѕР№РґР° Р±СћР»СЃР°)
+                    # Р‘РёР·РЅРёРЅРі ТіРѕР»Р°С‚РґР° Сѓ Р°Р»Р»Р°Т›Р°С‡РѕРЅ СЃРµСЃСЃРёСЏ РїР°РїРєР°СЃРёРґР°, Р»РµРєРёРЅ С…Р°РІС„СЃРёР·Р»РёРє СѓС‡СѓРЅ С‚РµРєС€РёСЂР°РјРёР·.
                     if TEMP_BASE in ai_path:
                         uploaded_files[key] = ai_path
 
@@ -2570,7 +2601,7 @@ def save():
         # Format numbers for summary
         f_npv = f"{analysis['npv']:,.0f}".replace(",", " ")
         f_roi = f"{analysis['roi']:.1f}"
-        f_irr = f"{analysis.get('irr', 0):.1f}" if analysis.get('irr') else "—"
+        f_irr = f"{analysis.get('irr', 0):.1f}" if analysis.get('irr') else "вЂ”"
 
         if warning_msg:
             xulosa_text = f"Tahlillar natijasida ushbu loyiha hozirgi kiritilgan ma'lumotlar bilan tijorat jihatdan yetarli darajada samarali emasligi aniqlandi. {warning_msg} Loyihaning joriy holatida rentabellik ko'rsatkichlari (NPV={f_npv} so'm, ROI={f_roi}%) ekanligi ma'lum bo'ldi. Ushbu biznes-reja asosida kelgusida faoliyat olib borishda biznes strategiyada jiddiy optimallashtirish, xususan xarajatlarni pasaytirish yoki sotish rejasida hajmlar hamda narxlarni qayta ko'rib chiqish talab etiladi. Qo'shimcha ravishda bozor kon'yunkturasi tahliliga asoslanib, mahsulot tannarxini tushirish bo'yicha chora-tadbirlar ko'rilishi zarur degan xulosaga kelindi."
@@ -2601,7 +2632,7 @@ def save():
                 logger.warning("PRO AI: AI matn qaytarmadi, standart matnlar ishlatiladi.")
         except Exception as ai_err:
             logger.error(f"PRO AI Error: {ai_err}")
-        # ── AI Usage yozish ──
+        # в”Ђв”Ђ AI Usage yozish в”Ђв”Ђ
         try:
             from modules.subscription_service import record_ai_usage
             _ai_elapsed = int((time.time() - _ai_start_time) * 1000)
@@ -2672,15 +2703,15 @@ def save():
                         file_path=word_path,
                         filename=pro_filename,
                         caption=(
-                            f"📄 <b>Biznes rejangiz tayyor!</b>\n\n"
-                            f"📋 <b>Loyiha:</b> {loyiha_nomi}\n"
-                            f"👤 <b>Tashabbuskor:</b> {tashabbuskor}\n\n"
-                            "✅ Faylni yuklab oling va foydalaning.\n"
-                            "📱 UzBizness platformasi — @uzbiznesssbot"
+                            f"рџ“„ <b>Biznes rejangiz tayyor!</b>\n\n"
+                            f"рџ“‹ <b>Loyiha:</b> {loyiha_nomi}\n"
+                            f"рџ‘¤ <b>Tashabbuskor:</b> {tashabbuskor}\n\n"
+                            "вњ… Faylni yuklab oling va foydalaning.\n"
+                            "рџ“± UzBizness platformasi вЂ” @uzbiznesssbot"
                         )
                     )
                     if telegram_file_sent:
-                        logger.info(f"[SAVE] ✅ Fayl Telegram ga yuborildi: {_tg_user_telegram_id}")
+                        logger.info(f"[SAVE] вњ… Fayl Telegram ga yuborildi: {_tg_user_telegram_id}")
                 except Exception as tge:
                     logger.warning(f"[SAVE] Telegram yuborish xatolik: {tge}")
 
@@ -2709,7 +2740,7 @@ def save():
 
 
 # ============================================================
-# ROUTES — TELEGRAM MINI APP (Alohida sahifa — asosiy tizimga ta'sir qilmaydi)
+# ROUTES вЂ” TELEGRAM MINI APP (Alohida sahifa вЂ” asosiy tizimga ta'sir qilmaydi)
 # ============================================================
 
 @app.route("/tg-dashboard")
@@ -2739,7 +2770,7 @@ def api_tg_save():
     try:
         cleanup_old_sessions(2)
 
-        # 1. Validatsiya (minimal — Telegram uchun)
+        # 1. Validatsiya (minimal вЂ” Telegram uchun)
         loyiha_nomi = request.form.get("loyiha_nomi", "").strip()
         tashabbuskor = request.form.get("tashabbuskor", "").strip()
         faoliyat_turi = request.form.get("faoliyat_turi", "xizmat")
@@ -2797,7 +2828,7 @@ def api_tg_save():
             if not payment:
                 return jsonify({"success": False, "errors": ["To'lov topilmadi."]}), 403
 
-            # Click/Payme uchun — payment_status=success
+            # Click/Payme uchun вЂ” payment_status=success
             provider = payment.get("payment_provider", "card")
             if provider in ("click", "payme"):
                 if payment.get("payment_status") != "success":
@@ -2820,7 +2851,7 @@ def api_tg_save():
 
         f_npv = f"{analysis['npv']:,.0f}".replace(",", " ")
         f_roi = f"{analysis['roi']:.1f}"
-        f_irr = f"{analysis.get('irr', 0):.1f}" if analysis.get('irr') else "—"
+        f_irr = f"{analysis.get('irr', 0):.1f}" if analysis.get('irr') else "вЂ”"
 
         if warning_msg:
             xulosa_text = f"Tahlillar natijasida ushbu loyiha hozirgi kiritilgan ma'lumotlar bilan tijorat jihatdan yetarli darajada samarali emasligi aniqlandi. {warning_msg} Loyihaning joriy holatida rentabellik ko'rsatkichlari (NPV={f_npv} so'm, ROI={f_roi}%) ekanligi ma'lum bo'ldi."
@@ -2903,15 +2934,15 @@ def api_tg_save():
                     file_path=word_path,
                     filename=pro_filename,
                     caption=(
-                        f"📄 <b>Biznes rejangiz tayyor!</b>\n\n"
-                        f"📋 <b>Loyiha:</b> {loyiha_nomi}\n"
-                        f"👤 <b>Tashabbuskor:</b> {tashabbuskor}\n\n"
-                        "✅ Faylni yuklab oling va foydalaning.\n"
-                        "📱 UzBizness platformasi — @uzbiznesssbot"
+                        f"рџ“„ <b>Biznes rejangiz tayyor!</b>\n\n"
+                        f"рџ“‹ <b>Loyiha:</b> {loyiha_nomi}\n"
+                        f"рџ‘¤ <b>Tashabbuskor:</b> {tashabbuskor}\n\n"
+                        "вњ… Faylni yuklab oling va foydalaning.\n"
+                        "рџ“± UzBizness platformasi вЂ” @uzbiznesssbot"
                     )
                 )
                 if telegram_file_sent:
-                    logger.info(f"[TG SAVE] ✅ Fayl Telegram ga yuborildi: {_tg_user_telegram_id}")
+                    logger.info(f"[TG SAVE] вњ… Fayl Telegram ga yuborildi: {_tg_user_telegram_id}")
             except Exception as tge:
                 logger.warning(f"[TG SAVE] Telegram yuborish xatolik: {tge}")
 

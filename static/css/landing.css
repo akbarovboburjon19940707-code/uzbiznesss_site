@@ -2798,3 +2798,64 @@ a {
         text-align: center;
     }
 }
+
+/* ============================================================
+   CATALOG TAB BUTTONS — Lazy Loading (catalog_lazy.css)
+   ============================================================ */
+
+/* Tab tugmalar */
+.catalog-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 50px;
+    border: 2px solid #e2e8f0;
+    background: #fff;
+    color: var(--gray-600);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Outfit', sans-serif;
+    white-space: nowrap;
+}
+.catalog-tab-btn:hover {
+    border-color: #3b82f6;
+    color: #3b82f6;
+    background: #eff6ff;
+}
+.catalog-tab-btn.active {
+    border-color: #3b82f6;
+    background: #3b82f6;
+    color: #fff;
+}
+.catalog-tab-btn .ctb-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+.catalog-tab-btn .ctb-label {
+    font-weight: 600;
+}
+.catalog-tab-btn .ctb-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 50px;
+    background: rgba(255,255,255,0.3);
+    font-size: 12px;
+    font-weight: 700;
+}
+.catalog-tab-btn:not(.active) .ctb-count {
+    background: #f1f5f9;
+    color: var(--gray-500);
+}
+
+/* Ko'proq yuklash tugmasi */
+#catalogLoadMoreBtn:hover {
+    background: #3b82f6 !important;
+    color: #fff !important;
+}

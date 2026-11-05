@@ -180,15 +180,29 @@
     <section class="catalog-section" id="catalog" style="padding: 100px 0; background: var(--gray-50);">
         <div class="container">
             <div class="catalog-header-new">
-                <h2>✨ So'ngi yuklangan mahsulotlar</h2>
+                <h2>✨ Tayyor biznes rejalar katalogi</h2>
+                <p style="color:var(--gray-500);font-size:15px;margin-top:8px;">Bo'limni tanlang — kerakli biznes rejalarni toping</p>
             </div>
-            
-            <div id="catalogContainer">
-                <!-- Kategoriyalar va mahsulotlar API dan yuklanadi -->
-                <div class="catalog-empty">
-                    <div class="status-spinner" style="width:40px;height:40px;border:3px solid #e2e8f0;border-top-color:#3b82f6;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px;"></div>
-                    <p>Mahsulotlar yuklanmoqda...</p>
+
+            <!-- Kategoriya tablar (lazy loading) -->
+            <div id="catalogTabsContainer" style="display:flex;flex-wrap:wrap;gap:10px;margin:28px 0 32px;justify-content:center;">
+                <div class="catalog-empty" style="width:100%;padding:20px 0;">
+                    <div class="status-spinner" style="width:32px;height:32px;border:3px solid #e2e8f0;border-top-color:#3b82f6;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 10px;"></div>
+                    <p style="font-size:14px;color:var(--gray-400);">Bo'limlar yuklanmoqda...</p>
                 </div>
+            </div>
+
+            <!-- Mahsulotlar gridi (tanlangan kategoriya) -->
+            <div id="catalogContainer">
+                <!-- Kategoriyani tanlang -->
+            </div>
+
+            <!-- Ko'proq yuklash tugmasi -->
+            <div id="catalogLoadMoreWrap" style="display:none;text-align:center;margin-top:32px;">
+                <button id="catalogLoadMoreBtn" onclick="loadMoreCatalogProducts()"
+                    style="padding:12px 32px;border-radius:10px;border:2px solid #3b82f6;background:transparent;color:#3b82f6;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;">
+                    Ko'proq ko'rish
+                </button>
             </div>
         </div>
     </section>
