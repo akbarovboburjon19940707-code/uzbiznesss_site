@@ -371,8 +371,8 @@
                                     <label>Biznes loyiha rasmi</label>
                                     <div class="upload-with-ai">
                                         <input type="file" name="business_image" id="business_image_file" class="input-ctrl" accept="image/*">
-                                        <button type="button" class="btn-ai-magic" onclick="fetchAIImage('project')" title="Grok (xAI) yordamida rasm generatsiya qilish">
-                                            Grok
+                                        <button type="button" class="btn-ai-magic" onclick="fetchAIImage('project', this)" title="Gemini AI yordamida rasm generatsiya qilish">
+                                            ✨ Gemini AI
                                         </button>
                                     </div>
                                     <div id="preview_business_image" class="ai-preview-box hidden"></div>
@@ -382,8 +382,8 @@
                                     <label>Mahsulot namunasi</label>
                                     <div class="upload-with-ai">
                                         <input type="file" name="product_photo" id="product_photo_file" class="input-ctrl" accept="image/*">
-                                        <button type="button" class="btn-ai-magic" onclick="fetchAIImage('product')" title="Grok (xAI) yordamida rasm generatsiya qilish">
-                                            Grok
+                                        <button type="button" class="btn-ai-magic" onclick="fetchAIImage('product', this)" title="Gemini AI yordamida rasm generatsiya qilish">
+                                            ✨ Gemini AI
                                         </button>
                                     </div>
                                     <div id="preview_product_photo" class="ai-preview-box hidden"></div>
@@ -570,7 +570,7 @@
     <script>window.__TELEGRAM_BOT_NAME = '{{ config.get("TELEGRAM_BOT_NAME", "uzbiznesssbot") }}';</script>
     <script src="/static/js/auth.js?v=2.9"></script>
     <script src="/static/js/subscription.js?v=2.9"></script>
-    <script src="/static/js/app.js?v=3.4"></script>
+    <script src="/static/js/app.js?v=3.5"></script>
     <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
     <script src="/static/js/telegram_webapp.js" defer></script>
 </body>

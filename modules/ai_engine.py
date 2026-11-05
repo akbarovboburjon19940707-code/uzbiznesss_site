@@ -59,7 +59,7 @@ def get_gemini_model():
     """Gemini (Google) — Uchinchi tanlov."""
     global _gemini_model
     if _gemini_model is None:
-        key = os.environ.get('GEMINI_API_KEY')
+        key = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY') or os.environ.get('GEMINI_API')
         if key:
             try:
                 import google.generativeai as genai

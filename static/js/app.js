@@ -724,44 +724,6 @@ function setupUploads() {
     });
 }
 
-async function fetchAIImage(type) {
-    const loyihaNomi = document.getElementById('loyiha_nomi')?.value || "Business";
-    const activityType = selectedFaoliyat || "Services";
-    const previewId = (type === 'project') ? "preview_business_image" : "preview_product_photo";
-    const hiddenId = (type === 'project') ? "ai_business_image_path" : "ai_product_photo_path";
-    const previewBox = document.getElementById(previewId);
-    const hiddenInput = document.getElementById(hiddenId);
-    const btn = event.currentTarget;
-    const originalContent = btn.innerHTML;
-
-    btn.disabled = true;
-    btn.innerHTML = '<span class="ai-spinner"></span>';
-
-    try {
-        const resp = await fetch('/api/ai/fetch-image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: loyihaNomi, activity_type: activityType, type: type, session_id: sessionStorage.getItem('biznesSessionId') || 'default' })
-        });
-        const res = await resp.json();
-        if (res.success) {
-            previewBox.innerHTML = `<div class="ai-img-wrap"><img src="${res.image_url}" alt="AI Preview"><div class="ai-img-badge">Grok AI</div><button type="button" class="ai-img-remove" onclick="removeAIImage('${type}')">&times;</button></div>`;
-            previewBox.classList.remove('hidden');
-            hiddenInput.value = res.local_path;
-            const fileInput = document.getElementById(type === 'project' ? 'business_image_file' : 'product_photo_file');
-            if (fileInput) fileInput.value = "";
-        } else showAlert("Rasm topishda xatolik: " + res.error);
-    } catch (e) { showAlert("Rasm bazasi bilan bog'lanishda xatolik."); }
-    finally { btn.disabled = false; btn.innerHTML = originalContent; }
-}
-
-function removeAIImage(type) {
-    const previewId = (type === 'project') ? "preview_business_image" : "preview_product_photo";
-    const hiddenId = (type === 'project') ? "ai_business_image_path" : "ai_product_photo_path";
-    document.getElementById(previewId).classList.add('hidden');
-    document.getElementById(hiddenId).value = "";
-}
-
 // ============================================================
 // PAYMENT LOGIC
 // ============================================================
@@ -1036,9 +998,9 @@ async function processPaymentAndDownload(format = 'zip') {
 
 
 // ============================================================
-// AI IMAGE FETCH (Grok tugmasi va avtomatik qidirish)
+// AI IMAGE FETCH (Gemini AI tugmasi va avtomatik rasm yaratish)
 // ============================================================
-async function fetchAIImage(imgType) {
+async function fetchAIImage(imgType, btnEl) {
     // imgType: 'project' yoki 'product'
     const loyihaNomi = document.getElementById('loyiha_nomi')?.value?.trim();
     if (!loyihaNomi) {
@@ -1046,60 +1008,63 @@ async function fetchAIImage(imgType) {
         return;
     }
 
-    // Preview va hidden input elementlari
     const previewId = imgType === 'product' ? 'preview_product_photo' : 'preview_business_image';
     const hiddenId = imgType === 'product' ? 'ai_product_photo_path' : 'ai_business_image_path';
     const previewBox = document.getElementById(previewId);
     const hiddenInput = document.getElementById(hiddenId);
+    const btn = btnEl || (typeof event !== 'undefined' ? event.currentTarget : null);
+    const originalContent = btn ? btn.innerHTML : '✨ Gemini AI';
 
-    // Loading holati
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="ai-spinner"></span>';
+    }
+
     if (previewBox) {
         previewBox.classList.remove('hidden');
-        previewBox.innerHTML = '<div style="text-align:center;padding:20px;color:#666;"><div class="spinner" style="width:30px;height:30px;border:3px solid #eee;border-top:3px solid #059669;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 10px;"></div>Rasm qidirilmoqda...</div>';
+        previewBox.innerHTML = '<div style="text-align:center;padding:20px;color:#666;"><div class="spinner" style="width:30px;height:30px;border:3px solid #eee;border-top:3px solid #7c3aed;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 10px;"></div>✨ Gemini AI rasm yaratmoqda...</div>';
     }
 
     try {
         const faoliyatTuri = selectedFaoliyat || 'business';
-        
         const resp = await fetch('/api/ai/fetch-image', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 query: loyihaNomi,
                 activity_type: faoliyatTuri,
-                type: imgType
+                type: imgType,
+                session_id: sessionStorage.getItem('biznesSessionId') || 'default'
             })
         });
 
         const res = await resp.json();
 
         if (res.success && res.image_url) {
-            // Rasmni preview qilish
+            if (res.session_id) {
+                sessionStorage.setItem('biznesSessionId', res.session_id);
+            }
             if (previewBox) {
-                previewBox.innerHTML = `
-                    <img src="${res.image_url}" alt="AI Preview" 
-                         style="max-width:100%;max-height:200px;border-radius:8px;object-fit:cover;">
-                    <button type="button" onclick="clearAIImage('${imgType}')" 
-                            style="position:absolute;top:5px;right:5px;background:rgba(0,0,0,0.5);color:white;border:none;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:14px;">✕</button>
-                `;
-                previewBox.style.position = 'relative';
+                previewBox.innerHTML = `<div class="ai-img-wrap"><img src="${res.image_url}" alt="Gemini AI Preview"><div class="ai-img-badge">✨ Gemini AI</div><button type="button" class="ai-img-remove" onclick="clearAIImage('${imgType}')">&times;</button></div>`;
                 previewBox.classList.remove('hidden');
             }
-
-            // Hidden inputga yo'lni saqlash (Word uchun)
             if (hiddenInput) {
                 hiddenInput.value = res.local_path || '';
             }
-
-            console.log("AI Image fetched:", res);
+            const fileInput = document.getElementById(imgType === 'project' ? 'business_image_file' : 'product_photo_file');
+            if (fileInput) fileInput.value = '';
         } else {
             throw new Error(res.error || "Rasm topilmadi");
         }
-
     } catch (e) {
-        console.error("AI Image error:", e);
+        console.error("Gemini AI Image error:", e);
         if (previewBox) {
             previewBox.innerHTML = `<div style="text-align:center;padding:15px;color:#dc2626;">Rasm olishda xatolik: ${e.message}</div>`;
+        }
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
         }
     }
 }
@@ -1109,7 +1074,8 @@ function clearAIImage(imgType) {
     const hiddenId = imgType === 'product' ? 'ai_product_photo_path' : 'ai_business_image_path';
     const previewBox = document.getElementById(previewId);
     const hiddenInput = document.getElementById(hiddenId);
-    
+
     if (previewBox) { previewBox.innerHTML = ''; previewBox.classList.add('hidden'); }
     if (hiddenInput) hiddenInput.value = '';
 }
+const removeAIImage = clearAIImage;

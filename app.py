@@ -2338,61 +2338,157 @@ def serve_temp_file(sid, filename):
 @rate_limit(max_req=10, window=60)
 def api_ai_fetch_image():
     """
-    AI yoki Internetdan (Cloud) professional rasm topish va saqlash.
+    Gemini AI yordamida loyiha va mahsulot uchun professional rasm generatsiya qilish / topish.
     """
     try:
+        import base64
         d = request.get_json() or {}
-        query = d.get("query", "business")
-        activity_type = d.get("activity_type", "Business")
-        img_type = d.get("type", "project") 
+        query = (d.get("query") or "business").strip()
+        activity_type = (d.get("activity_type") or "Business").strip()
+        img_type = d.get("type", "project")
         session_id = d.get("session_id", "default")
-        
-        # 1. Qidiruv so'zini inglizchaga o'tkazish
-        search_term = query
-        from modules.ai_engine import get_groq_client
-        gr_client = get_groq_client()
-        
-        if gr_client:
+
+        gemini_key = (
+            os.environ.get("GEMINI_API_KEY")
+            or os.environ.get("GOOGLE_API_KEY")
+            or os.environ.get("GEMINI_API")
+            or ""
+        ).strip()
+
+        role_focus = (
+            "close-up commercial studio showcase of the finished product or service output"
+            if img_type == "product"
+            else "modern business facility, clean production workshop, office or commercial workplace exterior/interior"
+        )
+        visual_prompt = f"Professional realistic commercial photo of {query} ({activity_type}), {role_focus}, high resolution, natural lighting, no text"
+        search_term = "business,industry"
+
+        # 1. Gemini AI orqali o'zbekcha loyiha nomini tahlil qilib, aniq inglizcha vizual prompt va kalit so'zlar olish
+        if gemini_key:
             try:
-                resp = gr_client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=[{"role": "user", "content": f"Translate this to 2 English keywords for image search: '{query}'. Output ONLY keywords."}],
-                    max_tokens=15
+                gem_text_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_key}"
+                gem_prompt = (
+                    f"Business project in Uzbek: '{query}' (Category: {activity_type}, Image role: {role_focus}). "
+                    "Respond ONLY with valid JSON: "
+                    '{"prompt": "detailed photorealistic English prompt for generating a clean business photo (max 30 words, no text in image)", '
+                    '"keywords": "2 simple English nouns separated by comma"}'
                 )
-                search_term = resp.choices[0].message.content.strip()
-            except:
-                pass
+                g_resp = requests.post(
+                    gem_text_url,
+                    json={"contents": [{"parts": [{"text": gem_prompt}]}]},
+                    timeout=8
+                )
+                if g_resp.status_code == 200:
+                    raw_txt = (
+                        g_resp.json()
+                        .get("candidates", [{}])[0]
+                        .get("content", {})
+                        .get("parts", [{}])[0]
+                        .get("text", "")
+                    )
+                    m = re.search(r"\{.*\}", raw_txt, re.DOTALL)
+                    if m:
+                        parsed = json.loads(m.group(0))
+                        if parsed.get("prompt"):
+                            visual_prompt = parsed["prompt"].strip()
+                        if parsed.get("keywords"):
+                            search_term = parsed["keywords"].strip()
+            except Exception as ge:
+                logger.warning(f"Gemini prompt translation warning: {ge}")
+        else:
+            from modules.ai_engine import get_groq_client
+            gr_client = get_groq_client()
+            if gr_client:
+                try:
+                    resp = gr_client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=[{"role": "user", "content": f"Translate this to 2 English keywords for image search: '{query}'. Output ONLY keywords."}],
+                        max_tokens=15
+                    )
+                    search_term = resp.choices[0].message.strip() if hasattr(resp.choices[0].message, "strip") else resp.choices[0].message.content.strip()
+                except Exception:
+                    pass
 
         session_dir = os.path.join(TEMP_BASE, session_id)
-        if not os.path.exists(session_dir): 
+        if not os.path.exists(session_dir):
             session_dir, session_id = create_session()
-            
+
         target_dir = os.path.join(session_dir, "uploads")
         os.makedirs(target_dir, exist_ok=True)
-        
-        # 2. Image Fetch (LoremFlickr is very stable)
-        image_url = f"https://loremflickr.com/1024/768/{search_term.replace(' ', ',')},professional/all"
-        
-        img_response = requests.get(image_url, timeout=10)
-        img_data = img_response.content
-        filename = f"ai_{int(time.time())}_{img_type}.jpg"
+
+        img_data = None
+        provider_used = "gemini"
+
+        # 2. Gemini Native Image Generation (gemini-2.0-flash-exp-image-generation / preview)
+        if gemini_key:
+            for gem_img_model in ("gemini-2.0-flash-exp-image-generation", "gemini-2.0-flash-preview-image-generation"):
+                try:
+                    gem_img_url = f"https://generativelanguage.googleapis.com/v1beta/models/{gem_img_model}:generateContent?key={gemini_key}"
+                    img_req = requests.post(
+                        gem_img_url,
+                        json={
+                            "contents": [{"parts": [{"text": f"Generate a photorealistic image: {visual_prompt}"}]}],
+                            "generationConfig": {"responseModalities": ["TEXT", "IMAGE"]}
+                        },
+                        timeout=15
+                    )
+                    if img_req.status_code == 200:
+                        parts = (
+                            img_req.json()
+                            .get("candidates", [{}])[0]
+                            .get("content", {})
+                            .get("parts", [])
+                        )
+                        for part in parts:
+                            inline = part.get("inlineData") or part.get("inline_data")
+                            if inline and inline.get("data"):
+                                decoded = base64.b64decode(inline["data"])
+                                if len(decoded) > 2000:
+                                    img_data = decoded
+                                    break
+                    if img_data:
+                        break
+                except Exception as gie:
+                    logger.warning(f"Gemini image model ({gem_img_model}) warning: {gie}")
+
+        # 3. Gemini prompti asosida AI rasm generatsiyasi (agar Gemini image model kvotasi cheklangan bo'lsa)
+        if not img_data:
+            try:
+                seed = int(time.time() * 1000) % 99999
+                encoded_prompt = urllib.parse.quote(visual_prompt)
+                pollinations_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=768&nologo=true&seed={seed}"
+                p_resp = requests.get(pollinations_url, timeout=12)
+                if p_resp.status_code == 200 and len(p_resp.content) > 2000:
+                    img_data = p_resp.content
+            except Exception as pe:
+                logger.warning(f"AI image fallback warning: {pe}")
+
+        # 4. Yakuniy zaxira (Gemini aniqlagan inglizcha kalit so'zlar bo'yicha foto)
+        if not img_data:
+            clean_kw = re.sub(r"[^a-zA-Z0-9,]", ",", search_term).strip(",") or "business"
+            image_url = f"https://loremflickr.com/1024/768/{clean_kw},business/all"
+            img_response = requests.get(image_url, timeout=10)
+            img_data = img_response.content
+
+        filename = f"gemini_{int(time.time())}_{img_type}.jpg"
         save_path = os.path.join(target_dir, filename)
-        
-        with open(save_path, "wb") as f: f.write(img_data)
-        
-        # Brauzer uchun URL (Static emas, API orqali)
+
+        with open(save_path, "wb") as f:
+            f.write(img_data)
+
         browser_url = f"/api/temp-file/{session_id}/uploads/{filename}"
-        
+
         return jsonify({
-            "success": True, 
-            "filename": filename, 
+            "success": True,
+            "provider": provider_used,
+            "filename": filename,
             "local_path": save_path,
             "image_url": browser_url,
             "session_id": session_id
         })
 
     except Exception as e:
-        logger.error(f"Image fetch error: {e}")
+        logger.error(f"Gemini image fetch error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 
