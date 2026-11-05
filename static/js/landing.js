@@ -237,6 +237,7 @@ let _currentPage = 1;
 let _hasMoreProducts = false;
 let _categoryCache = {};
 let _loadingProducts = false;
+let _allProductsMap = {};  // Barcha yuklangan mahsulotlar xaritasi (ID -> product)
 
 /* ============================================================
    CATALOG LAZY LOADING — Kategoriya bo'yicha yuklash
@@ -308,6 +309,8 @@ async function selectCatalogCategory(folderKey) {
     const cacheKey = `${folderKey}_1`;
     if (_categoryCache[cacheKey]) {
         const cached = _categoryCache[cacheKey];
+        _catalogProducts = cached.products || [];
+        (cached.products || []).forEach(p => { _allProductsMap[p.id] = p; });
         renderCatalogProducts(cached.products, false);
         _hasMoreProducts = cached.has_more;
         updateLoadMoreBtn();
@@ -347,11 +350,14 @@ async function fetchAndRenderCategory(folderKey, page, append) {
         // Keshga saqlash
         _categoryCache[`${folderKey}_${page}`] = data;
 
+        // Barcha mahsulotlarni xaritaga saqlash
+        (data.products || []).forEach(p => { _allProductsMap[p.id] = p; });
+
         // _catalogProducts ni yangilash (modal uchun)
         if (append) {
-            _catalogProducts = _catalogProducts.concat(data.products);
+            _catalogProducts = _catalogProducts.concat(data.products || []);
         } else {
-            _catalogProducts = data.products;
+            _catalogProducts = data.products || [];
         }
 
         _hasMoreProducts = data.has_more;
@@ -464,38 +470,88 @@ async function loadMoreCatalogProducts() {
 
 
 /**
- * Yagona Product Detail Modalini ochish
+ * Yagona Product Detail Modalini ochish (xavfsiz va kafolatlangan)
  */
-function openProductDetailModal(productId) {
+async function openProductDetailModal(productId) {
+    console.log('[MODAL] Ochilmoqda, product_id:', productId);
     _currentProductId = productId;
-    const product = _catalogProducts.find(p => p.id === productId);
-    if (!product) return;
+
+    // 1. Avval xaritadan yoki massivdan qidiramiz
+    let product = _allProductsMap[productId] || _catalogProducts.find(p => String(p.id) === String(productId));
+
+    // 2. Keshdan qidiramiz
+    if (!product) {
+        for (const k in _categoryCache) {
+            const list = _categoryCache[k]?.products || [];
+            const found = list.find(p => String(p.id) === String(productId));
+            if (found) { product = found; _allProductsMap[productId] = found; break; }
+        }
+    }
+
+    // 3. Agar hali ham topilmasa, API dan yuklab olamiz
+    if (!product) {
+        try {
+            const resp = await fetch(`/api/catalog/product/${productId}`);
+            const data = await resp.json();
+            if (data.success && data.product) {
+                product = data.product;
+                _allProductsMap[productId] = product;
+            }
+        } catch (e) {
+            console.error('[MODAL] Mahsulotni yuklashda xatolik:', e);
+        }
+    }
+
+    if (!product) {
+        console.error('[MODAL] Mahsulot topilmadi:', productId);
+        return;
+    }
+
+    // Modal overlay ni darhol ochish
+    const overlay = document.getElementById('productDetailModalOverlay');
+    if (!overlay) {
+        console.error('[MODAL] productDetailModalOverlay elementi topilmadi!');
+        return;
+    }
 
     // Reset payment form steps
-    document.getElementById('purchaseStep1').style.display = '';
-    document.getElementById('purchaseStep2').style.display = 'none';
-    document.getElementById('purchaseStep3').style.display = 'none';
+    const step1 = document.getElementById('purchaseStep1');
+    const step2 = document.getElementById('purchaseStep2');
+    const step3 = document.getElementById('purchaseStep3');
+    if (step1) step1.style.display = '';
+    if (step2) step2.style.display = 'none';
+    if (step3) step3.style.display = 'none';
 
     // Set product info in payment column
-    document.getElementById('purchaseProductName').textContent = product.title;
-    document.getElementById('purchasePrice').textContent = product.price_formatted;
+    const nameEl = document.getElementById('purchaseProductName');
+    const priceEl = document.getElementById('purchasePrice');
+    if (nameEl) nameEl.textContent = product.title || 'Biznes reja';
+    if (priceEl) priceEl.textContent = product.price_formatted || `${product.price || 30000} so'm`;
 
     // Reset form inputs
-    document.getElementById('catalogUserName').value = '';
-    document.getElementById('catalogCardPanel').style.display = 'none';
+    const userInp = document.getElementById('catalogUserName');
+    if (userInp) userInp.value = '';
+    const cardPan = document.getElementById('catalogCardPanel');
+    if (cardPan) cardPan.style.display = 'none';
     selectCatalogPayMethod('click');
 
     // Reset preview column
-    document.getElementById('previewTitle').textContent = product.title;
-    document.getElementById('previewPagesInfo').textContent = '';
-    document.getElementById('previewModalBody').innerHTML = `
-        <div class="preview-loading">
-            <div class="status-spinner"></div>
-            <p>Sahifalar yuklanmoqda...</p>
-        </div>`;
+    const prevTitle = document.getElementById('previewTitle');
+    if (prevTitle) prevTitle.textContent = product.title || 'Hujjat namunasi';
+    const prevInfo = document.getElementById('previewPagesInfo');
+    if (prevInfo) prevInfo.textContent = '';
+    const prevBody = document.getElementById('previewModalBody');
+    if (prevBody) {
+        prevBody.innerHTML = `
+            <div class="preview-loading">
+                <div class="status-spinner"></div>
+                <p>Sahifalar yuklanmoqda...</p>
+            </div>`;
+    }
 
     // Show modal overlay
-    document.getElementById('productDetailModalOverlay').classList.add('active');
+    overlay.classList.add('active');
+    overlay.style.display = 'flex';
     document.body.style.overflow = 'hidden';
 
     // API dan preview sahifalarini yuklash
@@ -504,7 +560,11 @@ function openProductDetailModal(productId) {
 
 function closeProductDetailModal(event) {
     if (event && event.target !== event.currentTarget) return;
-    document.getElementById('productDetailModalOverlay').classList.remove('active');
+    const overlay = document.getElementById('productDetailModalOverlay');
+    if (overlay) {
+        overlay.classList.remove('active');
+        overlay.style.display = 'none';
+    }
     document.body.style.overflow = '';
     if (_pollTimer) clearInterval(_pollTimer);
 }

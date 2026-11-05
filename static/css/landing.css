@@ -1744,8 +1744,10 @@ a {
     transition: all 0.3s ease;
 }
 .product-detail-modal-overlay.active {
-    opacity: 1;
-    visibility: visible;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: flex !important;
+    pointer-events: auto !important;
 }
 
 .product-detail-modal {
