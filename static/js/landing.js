@@ -231,6 +231,13 @@ let _currentPayMethod = 'click';
 let _currentPaymentId = null;
 let _pollTimer = null;
 
+// Lazy Loading State
+let _currentCategory = null;
+let _currentPage = 1;
+let _hasMoreProducts = false;
+let _categoryCache = {};
+let _loadingProducts = false;
+
 /* ============================================================
    CATALOG LAZY LOADING — Kategoriya bo'yicha yuklash
    ============================================================ */
@@ -282,7 +289,10 @@ async function loadCatalogProducts() {
  * Kategoriyani tanlash va mahsulotlarni yuklash (lazy loading)
  */
 async function selectCatalogCategory(folderKey) {
-    if (_currentCategory === folderKey) return; // allaqachon tanlangan
+    const container = document.getElementById('catalogContainer');
+    if (_currentCategory === folderKey && container && container.children.length > 0 && !container.querySelector('.catalog-empty')) {
+        return;
+    }
     _currentCategory = folderKey;
     _currentPage = 1;
     _hasMoreProducts = false;
@@ -292,8 +302,6 @@ async function selectCatalogCategory(folderKey) {
         btn.classList.toggle('active', btn.dataset.key === folderKey);
     });
 
-    // Konteynerdan tashqari yangilash
-    const container = document.getElementById('catalogContainer');
     if (!container) return;
 
     // Kesh tekshirish
