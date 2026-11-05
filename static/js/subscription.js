@@ -357,7 +357,7 @@ const SubModule = (() => {
 
         // Find plan info
         const planNames = { 'pro': 'Standart', 'enterprise': 'Premium' };
-        const planPrices = { 'pro': "80 000 so'm", 'enterprise': "150 000 so'm" };
+        const planPrices = { 'pro': "50 000 so'm", 'enterprise': "500 000 so'm" };
 
         $('#subPayPlanName').textContent = (planNames[planId] || planId) + ' tarif';
         $('#subPayPlanPrice').textContent = planPrices[planId] || '';

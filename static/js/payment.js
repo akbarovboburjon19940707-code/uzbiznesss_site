@@ -346,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
             </svg>
-            Click orqali to'lash — 80 000 so'm
+            Click orqali to'lash — 50 000 so'm
         `;
     }
 
@@ -431,7 +431,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <rect x="2" y="5" width="20" height="14" rx="2"/>
                 <path d="M2 10h20"/>
             </svg>
-            Payme orqali to'lash — 80 000 so'm
+            Payme orqali to'lash — 50 000 so'm
         `;
     }
 
