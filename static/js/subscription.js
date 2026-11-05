@@ -22,6 +22,11 @@ const SubModule = (() => {
     function init() {
         injectModal();
         bindPricingButtons();
+        // Ro'yxatdan o'tish/kirishdan keyin tanlangan tarifga qaytish
+        document.addEventListener('auth:success', () => setTimeout(resumePendingPlan, 300));
+        if (AuthModule.getToken() && document.getElementById('btn-standard')) {
+            setTimeout(resumePendingPlan, 300);
+        }
         // Load subscription status if user is logged in
         if (AuthModule.getToken()) {
             loadSubscriptionStatus();
@@ -349,6 +354,7 @@ const SubModule = (() => {
         // Must be logged in
         if (!AuthModule.getToken()) {
             closeModal();
+            savePendingPlan(planId);
             AuthModule.open('register');
             return;
         }
@@ -525,6 +531,44 @@ const SubModule = (() => {
     }
 
     // ============================================================
+    // TANLANGAN TARIFNI ESLAB QOLISH (ro'yxatdan o'tgandan keyin davom ettirish)
+    // ============================================================
+    const PENDING_KEY = 'pending_plan';
+    const PENDING_TTL_MS = 30 * 60 * 1000; // 30 daqiqa
+
+    function savePendingPlan(planId) {
+        try { sessionStorage.setItem(PENDING_KEY, JSON.stringify({ plan: planId, ts: Date.now() })); } catch (e) {}
+    }
+
+    function takePendingPlan() {
+        try {
+            const raw = sessionStorage.getItem(PENDING_KEY);
+            if (!raw) return null;
+            sessionStorage.removeItem(PENDING_KEY);
+            const d = JSON.parse(raw);
+            if (!d || !d.plan || Date.now() - d.ts > PENDING_TTL_MS) return null;
+            return d.plan;
+        } catch (e) { return null; }
+    }
+
+    async function resumePendingPlan() {
+        if (!AuthModule.getToken()) return;
+        const planId = takePendingPlan();
+        if (!planId) return;
+        await openModal();
+        selectPlan(planId);
+    }
+
+    function choosePlanFromPricing(planId) {
+        if (AuthModule.getToken()) {
+            openModal().then(() => selectPlan(planId));
+        } else {
+            savePendingPlan(planId);
+            AuthModule.open('register');
+        }
+    }
+
+    // ============================================================
     // PRICING BUTTONS (Landing page)
     // ============================================================
     function bindPricingButtons() {
@@ -542,12 +586,7 @@ const SubModule = (() => {
         if (btnStandard) {
             btnStandard.addEventListener('click', (e) => {
                 e.preventDefault();
-                if (AuthModule.getToken()) {
-                    openModal();
-                    setTimeout(() => selectPlan('pro'), 500);
-                } else {
-                    AuthModule.open('register');
-                }
+                choosePlanFromPricing('pro');
             });
         }
 
@@ -556,12 +595,7 @@ const SubModule = (() => {
         if (btnPremium) {
             btnPremium.addEventListener('click', (e) => {
                 e.preventDefault();
-                if (AuthModule.getToken()) {
-                    openModal();
-                    setTimeout(() => selectPlan('enterprise'), 500);
-                } else {
-                    AuthModule.open('register');
-                }
+                choosePlanFromPricing('enterprise');
             });
         }
     }
@@ -619,4 +653,8 @@ const SubModule = (() => {
 })();
 
 // Auto-init on DOM ready
-document.addEventListener('DOMContentLoaded', SubModule.init);
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', SubModule.init);
+} else {
+    SubModule.init();
+}

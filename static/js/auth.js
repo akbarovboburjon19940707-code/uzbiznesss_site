@@ -276,7 +276,7 @@ const AuthModule = (() => {
 
                 updateHeaderUI(data.user);
 
-                setTimeout(() => close(), 1500);
+                setTimeout(() => { close(); document.dispatchEvent(new CustomEvent('auth:success')); }, 1500);
             } else {
                 showError('login', data.error || 'Kirish xatoligi');
             }
@@ -318,7 +318,7 @@ const AuthModule = (() => {
 
                 updateHeaderUI(data.user);
 
-                setTimeout(() => close(), 1500);
+                setTimeout(() => { close(); document.dispatchEvent(new CustomEvent('auth:success')); }, 1500);
             } else {
                 showError('register', data.error || "Ro'yxatdan o'tish xatoligi");
             }
@@ -446,7 +446,7 @@ const AuthModule = (() => {
                                 $('#authSuccessDesc').textContent = 'Telegram orqali muvaffaqiyatli kirdingiz';
                                 $('#authSuccess').classList.add('visible');
                                 updateHeaderUI(res.user);
-                                setTimeout(() => close(), 2000);
+                                setTimeout(() => { close(); document.dispatchEvent(new CustomEvent('auth:success')); }, 2000);
 
                             } else if (res.status === 'expired') {
                                 _stopTgPolling();
@@ -533,4 +533,8 @@ const AuthModule = (() => {
 })();
 
 // Auto-init on DOM ready
-document.addEventListener('DOMContentLoaded', AuthModule.init);
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', AuthModule.init);
+} else {
+    AuthModule.init();
+}
