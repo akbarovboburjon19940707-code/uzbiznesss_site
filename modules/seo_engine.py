@@ -1,4 +1,4 @@
-﻿"""
+"""
 BizplanAI — SEO Engine (Sitemap, Slugs, Schema.org, Structured Data)
 =====================================================================
 Google qidiruvida 1-o'ringa chiqish uchun barcha mahsulotlarni
@@ -15,13 +15,15 @@ logger = logging.getLogger(__name__)
 
 
 def slugify(text: str) -> str:
-    """O'zbekcha matnni URL-friendly slug formatiga o'tkazish."""
+    """O'zbekcha matnni URL-friendly (faqat ASCII a-z0-9) slug formatiga o'tkazish."""
     if not text:
         return "biznes-reja"
     text = text.lower().strip()
     replacements = {
         "o'": "o", "g'": "g", "sh": "sh", "ch": "ch", "oʻ": "o", "gʻ": "g",
-        "o‘": "o", "g‘": "g", "’": "", "'": "", "ʻ": "", "`": "", "\"": "",
+        "o‘": "o", "g‘": "g", "o`": "o", "g`": "g",
+        "’": "", "'": "", "ʻ": "", "`": "", "\"": "", "«": "", "»": "",
+        "ў": "o", "қ": "q", "ғ": "g", "ҳ": "h",
         "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "yo",
         "ж": "j", "з": "z", "и": "i", "й": "y", "к": "k", "л": "l", "м": "m",
         "н": "n", "о": "o", "п": "p", "р": "r", "с": "s", "т": "t", "у": "u",
@@ -30,10 +32,10 @@ def slugify(text: str) -> str:
     }
     for k, v in replacements.items():
         text = text.replace(k, v)
-    text = re.sub(r"[^\w\s-]", "", text)
+    text = re.sub(r"[^a-z0-9\s-]", "", text)
     text = re.sub(r"[\s_]+", "-", text).strip("-")
     text = re.sub(r"-+", "-", text)
-    return text[:90] or "biznes-reja"
+    return text[:90].strip("-") or "biznes-reja"
 
 
 def generate_meta_description(plan: BusinessPlan) -> str:
@@ -50,16 +52,18 @@ def generate_meta_description(plan: BusinessPlan) -> str:
 
 def sync_all_slugs():
     """
-    Barcha 288 ta biznes reja uchun unikal SEO slug va meta description yaratish.
-    Agar slug mavjud bo'lmasa yoki duplikat bo'lsa, to'g'rilaydi.
+    Barcha biznes rejalar uchun unikal SEO slug va meta description yaratish.
+    PostgreSQL unique index to'qnashuvini oldini olish uchun avval o'zgaradigan
+    sluglarni NULL qilib flush qiladi, so'ng yangi qiymatlarni yozadi.
     """
     try:
-        plans = BusinessPlan.query.all()
+        plans = BusinessPlan.query.order_by(BusinessPlan.id.asc()).all()
         used_slugs = set()
-        updated_count = 0
+        desired_slugs = {}
+        slug_changes = []
+        meta_changes = 0
 
         for p in plans:
-            # Mavjud slug bo'lmasa yoki yangilanishi kerak bo'lsa
             base_slug = slugify(p.title)
             slug = base_slug
             counter = 1
@@ -67,23 +71,30 @@ def sync_all_slugs():
                 slug = f"{base_slug}-{counter}"
                 counter += 1
             used_slugs.add(slug)
+            desired_slugs[p.id] = slug
 
-            changed = False
             if p.slug != slug:
-                p.slug = slug
-                changed = True
+                slug_changes.append(p)
 
             if not p.meta_description:
                 p.meta_description = generate_meta_description(p)
-                changed = True
+                meta_changes += 1
 
-            if changed:
-                updated_count += 1
+        if slug_changes:
+            # PostgreSQL unique constraint to'qnashuvini oldini olish uchun
+            # o'zgarayotgan qatorlarning slug ustunini vaqtincha None qilamiz
+            for p in slug_changes:
+                p.slug = None
+            db.session.flush()
 
-        if updated_count > 0:
+            for p in slug_changes:
+                p.slug = desired_slugs[p.id]
+
+        total_updated = len(slug_changes) + meta_changes
+        if total_updated > 0:
             db.session.commit()
-            logger.info(f"[SEO] {updated_count} ta reja uchun SEO slug va meta tavsif saqlandi.")
-        return updated_count
+            logger.info(f"[SEO] {len(slug_changes)} ta slug va {meta_changes} ta meta tavsif yangilandi.")
+        return total_updated
     except Exception as e:
         db.session.rollback()
         logger.error(f"[SEO] sync_all_slugs xatolik: {e}", exc_info=True)
