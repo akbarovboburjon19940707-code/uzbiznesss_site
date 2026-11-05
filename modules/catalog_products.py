@@ -340,10 +340,28 @@ def _get_local_pdf_path(bp) -> Optional[str]:
 
 def increment_download_count(product_id: str):
     """Yuklab olish hisoblagichini oshirish."""
-    bp = db.session.get(BusinessPlan, product_id)
-    if bp:
-        bp.download_count = (bp.download_count or 0) + 1
-        db.session.commit()
+    try:
+        bp = db.session.get(BusinessPlan, product_id)
+        if bp:
+            bp.download_count = (bp.download_count or 0) + 1
+            db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.warning(f"[CATALOG] Download count oshirishda xatolik: {e}")
+
+
+def increment_view_count(product_id: str) -> int:
+    """Ko'rishlar hisoblagichini 1 taga oshirish."""
+    try:
+        bp = db.session.get(BusinessPlan, product_id)
+        if bp:
+            bp.view_count = (bp.view_count or 0) + 1
+            db.session.commit()
+            return bp.view_count
+    except Exception as e:
+        db.session.rollback()
+        logger.warning(f"[CATALOG] View count oshirishda xatolik: {e}")
+    return 0
 
 
 def add_product(data: dict) -> dict:

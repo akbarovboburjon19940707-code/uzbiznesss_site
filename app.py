@@ -43,7 +43,7 @@ from modules.payment_service.click import click_provider
 from modules.payment_logger import log_callback, log_error
 from modules.catalog_products import (
     get_all_products, get_product_by_id, get_product_pdf_path,
-    increment_download_count, get_preview_page_numbers, CATALOG_DIR,
+    increment_download_count, increment_view_count, get_preview_page_numbers, CATALOG_DIR,
     add_product, update_product, delete_product, init_catalog,
     get_catalog_categories, get_products_by_category
 )
@@ -2049,6 +2049,17 @@ def api_catalog_by_category(folder_key):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+
+@app.route("/api/catalog/view/<product_id>", methods=["POST", "GET"])
+@csrf.exempt
+def api_catalog_view(product_id):
+    """Mahsulot ko'rishlar sonini oshirish."""
+    try:
+        new_count = increment_view_count(product_id)
+        return jsonify({"success": True, "views_count": new_count})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @app.route("/api/catalog/product/<product_id>", methods=["GET"])
 @csrf.exempt
 def api_catalog_product(product_id):
@@ -2217,6 +2228,7 @@ def api_catalog_download(payment_id):
 @app.route("/api/catalog/preview/<product_id>", methods=["GET"])
 @csrf.exempt
 def api_catalog_preview(product_id):
+    increment_view_count(product_id)
     """
     PDF ning preview sahifalarini rasm sifatida qaytarish.
     Boshi, o'rtasi va oxiridan 5-6 sahifa.

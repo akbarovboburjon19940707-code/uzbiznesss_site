@@ -414,11 +414,12 @@ function renderCatalogProducts(products, append) {
     products.forEach(product => {
         const card = document.createElement('div');
         card.className = 'catalog-item-card';
+        card.dataset.id = product.id;
         card.onclick = () => openProductDetailModal(product.id);
 
         const ext = product.file_extension || '.pdf';
         const size = product.file_size_formatted || '3.44 MB';
-        const views = product.views_count || 6;
+        const views = (product.views_count !== undefined && product.views_count !== null) ? product.views_count : 0;
         const downloads = product.download_count || 0;
 
         card.innerHTML = `
@@ -439,7 +440,7 @@ function renderCatalogProducts(products, append) {
             <div class="ci-footer">
                 <div class="ci-stat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg> ${size}</div>
                 <div class="ci-stat" title="Yuklab olishlar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> ${downloads}</div>
-                <div class="ci-stat" title="Ko'rishlar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> ${views}</div>
+                <div class="ci-stat" title="Ko'rishlar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> <span class="ci-stat-views">${views}</span></div>
             </div>
         `;
         grid.appendChild(card);
@@ -475,6 +476,16 @@ async function loadMoreCatalogProducts() {
 async function openProductDetailModal(productId) {
     console.log('[MODAL] Ochilmoqda, product_id:', productId);
     _currentProductId = productId;
+
+    // Ko'rishlar hisoblagichini serverda va UI da darhol oshirish
+    fetch(`/api/catalog/view/${productId}`, { method: 'POST' }).catch(() => {});
+    document.querySelectorAll(`.catalog-item-card[data-id="${productId}"] .ci-stat-views`).forEach(el => {
+        const cur = parseInt(el.textContent.trim()) || 0;
+        el.textContent = cur + 1;
+    });
+    if (_allProductsMap[productId]) {
+        _allProductsMap[productId].views_count = (_allProductsMap[productId].views_count || 0) + 1;
+    }
 
     // 1. Avval xaritadan yoki massivdan qidiramiz
     let product = _allProductsMap[productId] || _catalogProducts.find(p => String(p.id) === String(productId));
