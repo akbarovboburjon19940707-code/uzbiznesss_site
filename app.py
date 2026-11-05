@@ -1,4 +1,4 @@
-﻿"""
+"""
 Biznes Reja Platformasi вЂ” Enterprise Edition v2.0
 ===================================================
 480 ta reja | 24 kategoriya | 4 faoliyat turi
@@ -2995,6 +2995,129 @@ def method_not_allowed(e):
 @app.errorhandler(500)
 def server_err(e):
     return jsonify({"success": False, "errors": ["Server xatosi"], "error": "Server xatosi"}), 500
+
+
+
+# ============================================================
+# SEO ROUTES — ALOHIDA MAHSULOT SAHIFA, SITEMAP & ROBOTS.TXT
+# ============================================================
+
+@app.route("/reja/<slug_or_id>")
+def plan_detail_page(slug_or_id):
+    """Har bir biznes reja uchun alohida Google SEO sahifasi."""
+    from modules.seo_engine import get_plan_by_slug_or_id, get_related_plans
+    from modules.catalog_products import increment_view_count
+
+    plan = get_plan_by_slug_or_id(slug_or_id)
+    if not plan:
+        return redirect(url_for('landing') + "#catalog")
+
+    # Ko'rishlar sonini oshirish
+    increment_view_count(plan.id)
+
+    price = int(plan.price) if plan.price else 30000
+    file_size_formatted = "3.44 MB"
+    if plan.file_size_bytes:
+        if plan.file_size_bytes < 1024 * 1024:
+            file_size_formatted = f"{plan.file_size_bytes / 1024:.2f} KB"
+        else:
+            file_size_formatted = f"{plan.file_size_bytes / (1024 * 1024):.2f} MB"
+
+    plan_data = {
+        "id": plan.id,
+        "title": plan.title,
+        "category": plan.category or "Umumiy",
+        "description": plan.description or "",
+        "meta_description": plan.meta_description or plan.title,
+        "price": price,
+        "price_formatted": f"{price:,}".replace(",", " ") + " so'm",
+        "preview_image": plan.preview_image or "",
+        "total_pages": plan.total_pages or 0,
+        "file_size_formatted": file_size_formatted,
+        "view_count": plan.view_count or 1,
+        "download_count": plan.download_count or 0,
+        "slug": plan.slug or plan.id,
+    }
+
+    related = get_related_plans(plan, limit=4)
+    related_data = []
+    for r in related:
+        r_price = int(r.price) if r.price else 30000
+        related_data.append({
+            "id": r.id,
+            "slug": r.slug or r.id,
+            "title": r.title,
+            "price_formatted": f"{r_price:,}".replace(",", " ") + " so'm",
+            "preview_image": r.preview_image or "",
+        })
+
+    return render_template("plan_detail.html", plan=plan_data, related_plans=related_data)
+
+
+@app.route("/sitemap.xml", methods=["GET"])
+def sitemap_xml():
+    """Google va Yandex uchun avtomatik XML sitemap."""
+    from models.business import BusinessPlan
+    from flask import Response
+
+    base_url = "https://bizplanai.uz"
+    plans = BusinessPlan.query.filter_by(is_active=True).all()
+
+    xml_lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+        '  <url>',
+        f'    <loc>{base_url}/</loc>',
+        '    <changefreq>daily</changefreq>',
+        '    <priority>1.0</priority>',
+        '  </url>',
+        '  <url>',
+        f'    <loc>{base_url}/dashboard</loc>',
+        '    <changefreq>weekly</changefreq>',
+        '    <priority>0.9</priority>',
+        '  </url>',
+        '  <url>',
+        f'    <loc>{base_url}/payment</loc>',
+        '    <changefreq>monthly</changefreq>',
+        '    <priority>0.7</priority>',
+        '  </url>',
+    ]
+
+    for p in plans:
+        slug = p.slug or p.id
+        loc = f"{base_url}/reja/{slug}"
+        lastmod = datetime.utcnow().strftime("%Y-%m-%d")
+        xml_lines.extend([
+            '  <url>',
+            f'    <loc>{loc}</loc>',
+            f'    <lastmod>{lastmod}</lastmod>',
+            '    <changefreq>weekly</changefreq>',
+            '    <priority>0.8</priority>',
+            '  </url>',
+        ])
+
+    xml_lines.append('</urlset>')
+    sitemap_content = '\n'.join(xml_lines)
+
+    resp = Response(sitemap_content, mimetype='application/xml')
+    resp.headers["Cache-Control"] = "public, max-age=3600"
+    return resp
+
+
+@app.route("/robots.txt", methods=["GET"])
+def robots_txt():
+    """Qidiruv botlari uchun robots.txt fayli."""
+    from flask import Response
+    content = """User-agent: *
+Allow: /
+Allow: /reja/
+Disallow: /admin/
+Disallow: /api/
+
+Sitemap: https://bizplanai.uz/sitemap.xml
+"""
+    return Response(content, mimetype='text/plain')
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))

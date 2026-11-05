@@ -53,6 +53,13 @@ def init_catalog(app):
         # Default mahsulotlar
         _initialize_default_products()
 
+        # SEO slug va meta tavsiflarni avtomatik yaratish
+        try:
+            from modules.seo_engine import sync_all_slugs
+            sync_all_slugs()
+        except Exception as e:
+            logger.warning(f"[CATALOG] SEO slug sync xatolik: {e}")
+
     logger.info("[CATALOG] Katalog SQL bazasi tayyor")
 
 
@@ -221,6 +228,7 @@ def get_all_products(active_only: bool = True, include_file_info: bool = False) 
 
         item = {
             "id": bp.id,
+            "slug": bp.slug or bp.id,
             "title": bp.title,
             "category": bp.category or "Fayllar",
             "description": bp.description or "",
@@ -646,6 +654,7 @@ def get_products_by_category(
             price = int(bp.price) if bp.price else 30000
             products.append({
                 "id":                 bp.id,
+                "slug":               bp.slug or bp.id,
                 "title":              bp.title,
                 "category":           bp.category or "Fayllar",
                 "description":        bp.description or "",

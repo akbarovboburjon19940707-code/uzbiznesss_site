@@ -1,0 +1,643 @@
+﻿<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO Meta Tags -->
+    <title>{{ plan.title }} — Tayyor biznes reja namunasi | BizplanAI</title>
+    <meta name="description" content="{{ plan.meta_description }}">
+    <meta name="keywords" content="{{ plan.title }}, {{ plan.category }}, biznes reja namunasi, biznes plan tayyor, kredit biznes reja, O'zbekiston, bank kredit biznes reja, investitsiya loyihasi">
+    <meta name="author" content="BizplanAI / UzBizness">
+    <link rel="canonical" href="https://bizplanai.uz/reja/{{ plan.slug or plan.id }}">
+
+    <!-- Open Graph (Facebook, Telegram, LinkedIn) -->
+    <meta property="og:type" content="product">
+    <meta property="og:title" content="{{ plan.title }} — Tayyor biznes reja">
+    <meta property="og:description" content="{{ plan.meta_description }}">
+    <meta property="og:url" content="https://bizplanai.uz/reja/{{ plan.slug or plan.id }}">
+    <meta property="og:image" content="{{ plan.preview_image or 'https://bizplanai.uz/static/img/logo_transparent.png' }}">
+    <meta property="og:site_name" content="BizplanAI">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ plan.title }}">
+    <meta name="twitter:description" content="{{ plan.meta_description }}">
+    <meta name="twitter:image" content="{{ plan.preview_image or 'https://bizplanai.uz/static/img/logo_transparent.png' }}">
+
+    <!-- Google Structured Data (Schema.org / JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Product",
+          "name": "{{ plan.title }}",
+          "description": "{{ plan.meta_description }}",
+          "image": "{{ plan.preview_image or 'https://bizplanai.uz/static/img/logo_transparent.png' }}",
+          "category": "{{ plan.category }}",
+          "offers": {
+            "@type": "Offer",
+            "price": "{{ plan.price }}",
+            "priceCurrency": "UZS",
+            "availability": "https://schema.org/InStock",
+            "url": "https://bizplanai.uz/reja/{{ plan.slug or plan.id }}"
+          },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "reviewCount": "38",
+            "bestRating": "5",
+            "worstRating": "1"
+          }
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Bosh sahifa",
+              "item": "https://bizplanai.uz/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Katalog",
+              "item": "https://bizplanai.uz/#catalog"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "{{ plan.category }}",
+              "item": "https://bizplanai.uz/#catalog"
+            },
+            {
+              "@type": "ListItem",
+              "position": 4,
+              "name": "{{ plan.title }}",
+              "item": "https://bizplanai.uz/reja/{{ plan.slug or plan.id }}"
+            }
+          ]
+        }
+      ]
+    }
+    </script>
+
+    <link rel="icon" href="/static/img/logo_transparent.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/landing.css?v=2.6">
+    <link rel="stylesheet" href="/static/css/auth.css">
+
+    <style>
+        .plan-page-wrapper {
+            background: #f8fafc;
+            padding: 120px 0 80px;
+            min-height: 100vh;
+        }
+        .breadcrumbs {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .breadcrumbs a {
+            color: var(--gray-600);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .breadcrumbs a:hover {
+            color: var(--primary);
+        }
+        .plan-main-card {
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1.1fr 1fr;
+            gap: 0;
+            margin-bottom: 48px;
+        }
+        @media (max-width: 900px) {
+            .plan-main-card {
+                grid-template-columns: 1fr;
+            }
+        }
+        .plan-preview-col {
+            background: #f1f5f9;
+            padding: 36px;
+            border-right: 1px solid var(--gray-200);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .plan-main-image-wrap {
+            width: 100%;
+            max-width: 420px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            background: #fff;
+            border: 1px solid var(--gray-200);
+            margin-bottom: 24px;
+        }
+        .plan-main-image-wrap img {
+            width: 100%;
+            display: block;
+            object-fit: cover;
+        }
+        .plan-specs-grid {
+            width: 100%;
+            max-width: 420px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        .plan-spec-item {
+            background: #fff;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--gray-200);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .plan-spec-label {
+            font-size: 12px;
+            color: var(--gray-500);
+            font-weight: 500;
+        }
+        .plan-spec-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+        .plan-info-col {
+            padding: 36px;
+            display: flex;
+            flex-direction: column;
+        }
+        .plan-category-badge {
+            display: inline-block;
+            background: #eff6ff;
+            color: #2563eb;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 50px;
+            align-self: flex-start;
+            margin-bottom: 14px;
+        }
+        .plan-title-h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 28px;
+            font-weight: 800;
+            line-height: 1.3;
+            color: var(--gray-900);
+            margin-bottom: 16px;
+        }
+        .plan-price-box {
+            background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%);
+            padding: 18px 24px;
+            border-radius: 14px;
+            border: 1px solid #bbf7d0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .plan-price-num {
+            font-family: 'Outfit', sans-serif;
+            font-size: 32px;
+            font-weight: 800;
+            color: #166534;
+        }
+        .plan-desc-text {
+            font-size: 15px;
+            line-height: 1.7;
+            color: var(--gray-600);
+            margin-bottom: 24px;
+        }
+        .plan-buy-section {
+            background: #fff;
+            border: 2px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+        .plan-buy-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--gray-700);
+            margin-bottom: 12px;
+        }
+        .pay-buttons-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn-pay-action {
+            flex: 1;
+            min-width: 140px;
+            padding: 14px 20px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+        .btn-pay-click {
+            background: #0089d0;
+            color: #fff;
+        }
+        .btn-pay-click:hover {
+            background: #0077b5;
+            transform: translateY(-2px);
+        }
+        .btn-pay-payme {
+            background: #00cccc;
+            color: #fff;
+        }
+        .btn-pay-payme:hover {
+            background: #00b3b3;
+            transform: translateY(-2px);
+        }
+        .btn-pay-card {
+            background: #1e293b;
+            color: #fff;
+        }
+        .btn-pay-card:hover {
+            background: #0f172a;
+            transform: translateY(-2px);
+        }
+        .plan-features-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 24px 0;
+        }
+        .plan-features-list li {
+            font-size: 14px;
+            color: var(--gray-700);
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px dashed var(--gray-200);
+        }
+        .plan-features-list li:last-child {
+            border-bottom: none;
+        }
+        .plan-features-list li svg {
+            color: #10b981;
+            flex-shrink: 0;
+        }
+        /* Details & Structure section */
+        .plan-section-block {
+            background: #fff;
+            border-radius: 16px;
+            border: 1px solid var(--gray-200);
+            padding: 32px;
+            margin-bottom: 32px;
+        }
+        .section-h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .structure-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+        }
+        .structure-item {
+            background: #f8fafc;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            gap: 12px;
+        }
+        .structure-num {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #3b82f6;
+            color: #fff;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+        .structure-title {
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+        }
+        .structure-desc {
+            font-size: 13px;
+            color: var(--gray-500);
+            line-height: 1.4;
+        }
+        /* Related plans */
+        .related-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ========== HEADER ========== -->
+    <header class="site-header scrolled" id="siteHeader">
+        <div class="container header-inner">
+            <a href="/" class="logo" id="logo">
+                <div class="logo-icon" style="background: transparent; padding: 0; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+                    <img src="/static/img/logo_transparent.png" alt="UzBizness Logo" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                </div>
+                <span class="logo-text">UzBizness</span>
+            </a>
+
+            <nav class="main-nav" id="mainNav">
+                <a href="/" class="nav-link">Bosh sahifa</a>
+                <a href="/#catalog" class="nav-link">Biznes reja katalogi</a>
+                <a href="/dashboard" class="nav-link">Biznes reja yaratish</a>
+                <a href="/#pricing" class="nav-link">Tariflar</a>
+                <a href="/#contact" class="nav-link">Aloqa</a>
+            </nav>
+
+            <a href="/dashboard" class="btn-cta-header" style="text-decoration:none;">
+                Yangi reja yaratish
+            </a>
+        </div>
+    </header>
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <main class="plan-page-wrapper">
+        <div class="container">
+
+            <!-- Breadcrumbs -->
+            <nav class="breadcrumbs" aria-label="Breadcrumb">
+                <a href="/">Bosh sahifa</a>
+                <span>/</span>
+                <a href="/#catalog">Katalog</a>
+                <span>/</span>
+                <span>{{ plan.category }}</span>
+                <span>/</span>
+                <span style="color:var(--gray-800); font-weight:600;">{{ plan.title }}</span>
+            </nav>
+
+            <!-- Main Product Card -->
+            <article class="plan-main-card">
+                <!-- Left: Preview & Specs -->
+                <div class="plan-preview-col">
+                    <div class="plan-main-image-wrap">
+                        <img src="{{ plan.preview_image or '/static/img/placeholder.png' }}" alt="{{ plan.title }} — Biznes reja muqovasi" loading="eager">
+                    </div>
+
+                    <div class="plan-specs-grid">
+                        <div class="plan-spec-item">
+                            <span class="plan-spec-label">📄 Fayl formati</span>
+                            <span class="plan-spec-value">PDF / Word (.docx)</span>
+                        </div>
+                        <div class="plan-spec-item">
+                            <span class="plan-spec-label">📑 Sahifalar</span>
+                            <span class="plan-spec-value">{{ plan.total_pages or 'To\'liq' }} bet</span>
+                        </div>
+                        <div class="plan-spec-item">
+                            <span class="plan-spec-label">💾 Hajmi</span>
+                            <span class="plan-spec-value">{{ plan.file_size_formatted }}</span>
+                        </div>
+                        <div class="plan-spec-item">
+                            <span class="plan-spec-label">👁 Ko'rishlar</span>
+                            <span class="plan-spec-value">{{ plan.view_count or 1 }} marta</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Details & Purchase -->
+                <div class="plan-info-col">
+                    <span class="plan-category-badge">{{ plan.category }}</span>
+                    <h1 class="plan-title-h1">{{ plan.title }}</h1>
+
+                    <div class="plan-price-box">
+                        <div>
+                            <div style="font-size:12px;color:#15803d;font-weight:700;text-transform:uppercase;">Tayyor reja narxi</div>
+                            <div class="plan-price-num">{{ plan.price_formatted }}</div>
+                        </div>
+                        <div style="font-size:13px;color:#15803d;background:#dcfce7;padding:6px 12px;border-radius:20px;font-weight:700;">
+                            ✓ 100% kafolat
+                        </div>
+                    </div>
+
+                    <p class="plan-desc-text">
+                        {{ plan.description or (plan.title + " bo'yicha to'liq iqtisodiy-moliyaviy hisob-kitoblar, daromad va xarajatlar prognozi, marketing tahlili hamda kredit qaytarish grafigi kiritilgan professional biznes reja.") }}
+                    </p>
+
+                    <ul class="plan-features-list">
+                        <li>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            Banklar (Agrobank, Mikrokreditbank, Xalq banki va boshqalar) talablariga mos
+                        </li>
+                        <li>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            Imtiyozli kredit va davlat subsidiyalari uchun tayyor
+                        </li>
+                        <li>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            NPV, IRR, ROI va o'zini qoplash muddatlari aniq hisoblangan
+                        </li>
+                        <li>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            To'lovdan keyin darhol to'liq faylni yuklab olish imkoniyati
+                        </li>
+                    </ul>
+
+                    <!-- Buy Section -->
+                    <div class="plan-buy-section">
+                        <div class="plan-buy-title">To'lov usulini tanlang va yuklab oling:</div>
+                        <div class="pay-buttons-group">
+                            <button class="btn-pay-action btn-pay-click" onclick="quickBuy('click')">
+                                Click orqali to'lash
+                            </button>
+                            <button class="btn-pay-action btn-pay-payme" onclick="quickBuy('payme')">
+                                Payme orqali to'lash
+                            </button>
+                            <button class="btn-pay-action btn-pay-card" onclick="quickBuy('card')">
+                                Karta orqali
+                            </button>
+                        </div>
+                        <p style="font-size:12px;color:var(--gray-400);margin-top:10px;text-align:center;">
+                            🔒 Xavfsiz to'lov tizimlari orqali himoyalangan
+                        </p>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Document Structure (Mundarija) -->
+            <section class="plan-section-block">
+                <h2 class="section-h2">📋 Biznes reja tarkibi va bo'limlari</h2>
+                <div class="structure-grid">
+                    <div class="structure-item">
+                        <div class="structure-num">1</div>
+                        <div>
+                            <div class="structure-title">Loyiha rezyumesi</div>
+                            <div class="structure-desc">Loyiha maqsadi, umumiy qiymati va kutilayotgan natijalar.</div>
+                        </div>
+                    </div>
+                    <div class="structure-item">
+                        <div class="structure-num">2</div>
+                        <div>
+                            <div class="structure-title">Korxona tavsifi</div>
+                            <div class="structure-desc">Yuridik shakli, tashabbuskor va mavjud moddiy baza.</div>
+                        </div>
+                    </div>
+                    <div class="structure-item">
+                        <div class="structure-num">3</div>
+                        <div>
+                            <div class="structure-title">Marketing va bozor tahlili</div>
+                            <div class="structure-desc">Raqobatchilar, maqsadli auditoriya va talab prognozi.</div>
+                        </div>
+                    </div>
+                    <div class="structure-item">
+                        <div class="structure-num">4</div>
+                        <div>
+                            <div class="structure-title">Ishlab chiqarish / Xizmat rejasi</div>
+                            <div class="structure-desc">Xom-ashyo, uskunalar va texnologik jarayon.</div>
+                        </div>
+                    </div>
+                    <div class="structure-item">
+                        <div class="structure-num">5</div>
+                        <div>
+                            <div class="structure-title">Moliyaviy hisob-kitoblar</div>
+                            <div class="structure-desc">Daromadlar, doimiy va o'zgaruvchan xarajatlar tahlili.</div>
+                        </div>
+                    </div>
+                    <div class="structure-item">
+                        <div class="structure-num">6</div>
+                        <div>
+                            <div class="structure-title">Kredit qaytarish grafigi</div>
+                            <div class="structure-desc">Asosiy qarz va foiz to'lovlarining oylik jadvallari.</div>
+                        </div>
+                    </div>
+                    <div class="structure-item">
+                        <div class="structure-num">7</div>
+                        <div>
+                            <div class="structure-title">Iqtisodiy samaradorlik (NPV, IRR)</div>
+                            <div class="structure-desc">Sof joriy qiymat, ichki daromadlilik va o'zini qoplash muddati.</div>
+                        </div>
+                    </div>
+                    <div class="structure-item">
+                        <div class="structure-num">8</div>
+                        <div>
+                            <div class="structure-title">Xatarlar tahlili</div>
+                            <div class="structure-desc">Tadbirkorlik risklari va ularni bartaraf etish choralari.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Related Plans -->
+            {% if related_plans %}
+            <section class="plan-section-block">
+                <h2 class="section-h2">🔗 Shu yo'nalishdagi boshqa tayyor biznes rejalar</h2>
+                <div class="related-grid">
+                    {% for r in related_plans %}
+                    <a href="/reja/{{ r.slug or r.id }}" class="catalog-item-card" style="text-decoration:none;color:inherit;">
+                        <div class="ci-image">
+                            <img src="{{ r.preview_image or '/static/img/placeholder.png' }}" alt="{{ r.title }}" loading="lazy">
+                        </div>
+                        <div class="ci-content">
+                            <h4 class="ci-title" style="margin-bottom:8px;">{{ r.title }}</h4>
+                            <div class="ci-price">{{ r.price_formatted }}</div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
+            <!-- Call to action: AI generator -->
+            <section class="plan-section-block" style="background:linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color:#fff; text-align:center; padding:48px 24px;">
+                <h2 style="font-family:'Outfit',sans-serif;font-size:26px;font-weight:800;margin-bottom:12px;color:#fff;">
+                    O'zingizning aniq ko'rsatkichlaringiz asosida yangi biznes reja tuzmoqchimisiz?
+                </h2>
+                <p style="font-size:16px;max-width:650px;margin:0 auto 24px;opacity:0.9;">
+                    BizplanAI sun'iy intellekti yordamida 10 daqiqada o'z korxonangiz uchun individual moliyaviy hisob-kitoblar va biznes reja yarating!
+                </p>
+                <a href="/dashboard" style="display:inline-block;padding:14px 36px;border-radius:12px;background:#fff;color:#1e3a8a;font-weight:800;font-size:16px;text-decoration:none;transition:all 0.2s;">
+                    🚀 Noldan yangi reja yaratish
+                </a>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <div class="footer-bottom" style="border-top:none;padding-top:0;">
+                <p>&copy; 2026 UzBizness / BizplanAI. Barcha huquqlar himoyalangan.</p>
+                <div class="footer-bottom-links">
+                    <a href="/">Bosh sahifa</a>
+                    <a href="/#catalog">Biznes rejalar katalogi</a>
+                    <a href="/dashboard">Biznes Reja Platformasi</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const CURRENT_PRODUCT_ID = "{{ plan.id }}";
+
+        async function quickBuy(method) {
+            const userName = prompt("Iltimos, ismingiz va telefon raqamingizni kiriting:", "");
+            if (!userName || !userName.trim()) return;
+
+            try {
+                const resp = await fetch('/api/catalog/purchase', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        product_id: CURRENT_PRODUCT_ID,
+                        payment_method: method,
+                        user_name: userName.trim()
+                    })
+                });
+                const data = await resp.json();
+                if (!data.success) throw new Error(data.error || 'To\'lovda xatolik');
+
+                if (data.payment_url) {
+                    window.location.href = data.payment_url;
+                } else if (method === 'card') {
+                    alert("Karta orqali to'lov uchun to'lov sahifasiga yo'naltirilmoqda...");
+                    window.location.href = `/payment?product_id=${CURRENT_PRODUCT_ID}&order_id=${data.order_id}`;
+                }
+            } catch (err) {
+                alert("Xatolik: " + err.message);
+            }
+        }
+    </script>
+</body>
+</html>

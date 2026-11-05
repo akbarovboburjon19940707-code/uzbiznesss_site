@@ -434,7 +434,9 @@ function renderCatalogProducts(products, append) {
                 <img src="${product.preview_image || '/static/img/placeholder.png'}" alt="${product.title}" loading="lazy">
             </div>
             <div class="ci-content">
-                <h4 class="ci-title" title="${product.title}">${product.title}</h4>
+                <a href="/reja/${product.slug || product.id}" class="ci-title-link" style="text-decoration:none;color:inherit;" onclick="if(event.ctrlKey||event.metaKey) return; event.preventDefault(); openProductDetailModal('${product.id}');">
+                    <h4 class="ci-title" title="${product.title}">${product.title}</h4>
+                </a>
                 <div class="ci-price">${product.price_formatted}</div>
             </div>
             <div class="ci-footer">
