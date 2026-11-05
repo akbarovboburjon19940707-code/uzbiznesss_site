@@ -299,22 +299,37 @@ def get_product_pdf_path(product_id: str) -> Optional[str]:
 
 
 def _get_local_pdf_path(bp) -> Optional[str]:
-    """Lokal PDF fayl yo'lini topish (bir necha joydan izlaydi)."""
+    """Lokal PDF fayl yo'lini topish (kategoriya papkasi va asosiy papkadan izlaydi)."""
     pdf_file = bp.pdf_file if isinstance(bp, BusinessPlan) else bp.get("pdf_file", "")
     if not pdf_file:
         return None
 
-    # Asosiy joy: catalog_files/
+    category = bp.category if isinstance(bp, BusinessPlan) else bp.get("category", "")
+    folder = CATEGORY_MAP.get(category, "")
+
+    # 1. Kategoriya papkasi: catalog_files/<folder>/<pdf_file>
+    if folder:
+        cat_path = os.path.join(CATALOG_DIR, folder, pdf_file)
+        if os.path.exists(cat_path):
+            return cat_path
+
+    # 2. Barcha kategoriya papkalarini tekshirish
+    for subfolder in ("xizmatlar", "ishlab_chiqarish", "transport", "lizing", "qishloq_xojaligi", "savdo", "talim", "umumiy"):
+        sub_path = os.path.join(CATALOG_DIR, subfolder, pdf_file)
+        if os.path.exists(sub_path):
+            return sub_path
+
+    # 3. Asosiy joy: catalog_files/
     pdf_path = os.path.join(CATALOG_DIR, pdf_file)
     if os.path.exists(pdf_path):
         return pdf_path
 
-    # Fallback: static/uploads/
+    # 4. Fallback: static/uploads/
     fallback = os.path.join(BASE_DIR, "static", "uploads", pdf_file)
     if os.path.exists(fallback):
         return fallback
 
-    # Probellar bilan: HOWO_... → HOWO ...
+    # 5. Probellar bilan: HOWO_... → HOWO ...
     original_name = pdf_file.replace("_", " ")
     fallback2 = os.path.join(BASE_DIR, "static", "uploads", original_name)
     if os.path.exists(fallback2):
