@@ -462,6 +462,255 @@
             .cat-form-grid { grid-template-columns: 1fr; }
             .cat-modal { max-height: 95vh; }
         }
+    
+        /* ── Didox / Soliq Enterprise Table Style ── */
+        .admin-main { max-width: 1440px; margin: 0 auto; padding: 24px; }
+        .didox-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+            overflow: hidden;
+        }
+        .didox-top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 14px 20px 0 20px;
+            border-bottom: 1px solid #e2e8f0;
+            background: #fff;
+        }
+        .didox-subtabs {
+            display: flex;
+            align-items: center;
+            gap: 22px;
+            overflow-x: auto;
+        }
+        .didox-subtab {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 2px 14px 2px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            color: #334155;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .didox-subtab:hover { color: #0f172a; }
+        .didox-subtab.active {
+            color: #1e1b4b;
+            font-weight: 700;
+            border-bottom-color: #4338ca;
+        }
+        .didox-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 22px;
+            height: 20px;
+            padding: 0 7px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1;
+        }
+        .pill-slate { background: #64748b; }
+        .pill-orange { background: #ea580c; }
+        .pill-green { background: #22c55e; }
+        .pill-black { background: #0f172a; }
+        .pill-red { background: #dc2626; }
+        .pill-purple { background: #9333ea; }
+
+        .didox-tools {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 10px;
+        }
+        .didox-search {
+            padding: 7px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #1e293b;
+            width: 240px;
+            outline: none;
+            font-family: 'Inter', sans-serif;
+        }
+        .didox-search:focus { border-color: #4338ca; box-shadow: 0 0 0 3px rgba(67,56,202,0.08); }
+
+        .didox-scroll-line {
+            height: 4px;
+            background: #f1f5f9;
+            position: relative;
+            overflow: hidden;
+        }
+        .didox-scroll-thumb {
+            height: 100%;
+            width: 62%;
+            background: #64748b;
+            border-radius: 4px;
+        }
+
+        .didox-table-wrap {
+            overflow-x: auto;
+            padding: 8px 16px 20px 16px;
+            background: #fcfcfd;
+        }
+        .didox-table {
+            width: 100%;
+            min-width: 1180px;
+            border-collapse: separate;
+            border-spacing: 0 8px;
+        }
+        .didox-table thead th {
+            background: transparent;
+            border: none;
+            padding: 10px 12px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            white-space: nowrap;
+        }
+        .didox-table tbody tr {
+            background: #fff;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+            transition: all 0.15s ease;
+        }
+        .didox-table tbody tr:hover {
+            background: #f8fafc;
+            box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
+        }
+        .didox-table tbody td {
+            padding: 14px 12px;
+            border-top: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 13px;
+            color: #1e293b;
+            vertical-align: middle;
+        }
+        .didox-table tbody td:first-child {
+            border-left: 1px solid #e2e8f0;
+            border-top-left-radius: 8px;
+            border-bottom-left-radius: 8px;
+            width: 36px;
+            text-align: center;
+        }
+        .didox-table tbody td:last-child {
+            border-right: 1px solid #e2e8f0;
+            border-top-right-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+
+        .didox-check {
+            width: 16px;
+            height: 16px;
+            accent-color: #4338ca;
+            cursor: pointer;
+        }
+        .didox-dot {
+            display: inline-block;
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+        }
+        .didox-dot.approved { background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.15); }
+        .didox-dot.pending, .didox-dot.reviewing { background: #ea580c; box-shadow: 0 0 0 3px rgba(234,88,12,0.18); }
+        .didox-dot.rejected { background: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.15); }
+
+        .didox-doc-type {
+            font-weight: 600;
+            color: #1e293b;
+            line-height: 1.35;
+        }
+        .didox-doc-sub {
+            font-size: 12px;
+            color: #475569;
+            margin-top: 2px;
+        }
+
+        .didox-method-pill {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .didox-method-pill.low { background: #dcfce7; color: #16a34a; }
+        .didox-method-pill.click { background: #e0f2fe; color: #0284c7; }
+        .didox-method-pill.payme { background: #ccfbf1; color: #0d9488; }
+        .didox-method-pill.card { background: #dcfce7; color: #15803d; }
+
+        .didox-kontragent-name {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #3730a3;
+            text-transform: uppercase;
+            line-height: 1.35;
+            letter-spacing: 0.2px;
+        }
+        .didox-kontragent-proj {
+            font-size: 12px;
+            font-weight: 600;
+            color: #4338ca;
+            text-transform: uppercase;
+            margin-top: 2px;
+            max-width: 260px;
+            line-height: 1.3;
+        }
+        .didox-kontragent-id {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 3px;
+        }
+        .didox-copy-btn {
+            background: transparent;
+            border: none;
+            color: #475569;
+            cursor: pointer;
+            padding: 2px;
+            display: inline-flex;
+            align-items: center;
+            opacity: 0.75;
+            transition: opacity 0.15s, transform 0.15s;
+        }
+        .didox-copy-btn:hover { opacity: 1; color: #3730a3; transform: scale(1.1); }
+
+        .didox-phone-wrap, .didox-docnum-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            white-space: nowrap;
+        }
+        .didox-docnum-text {
+            line-height: 1.35;
+            color: #1e293b;
+            font-size: 12.5px;
+        }
+        .didox-sum {
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 13.5px;
+            color: #0f172a;
+            text-align: right;
+            white-space: nowrap;
+        }
+
     </style>
 </head>
 <body>
@@ -515,103 +764,189 @@
 
     <!-- TABS CONTENT -->
     
-    <!-- Tab: Payments -->
+    <!-- Tab: Payments (Didox / Soliq Enterprise Usulida) -->
     <div id="tab-payments" class="admin-tab-content">
-        <!-- Stats -->
         {% set total = payments | length %}
         {% set reviewing = payments | selectattr('status', 'in', ['pending', 'reviewing']) | list | length %}
         {% set approved = payments | selectattr('status', 'equalto', 'approved') | list | length %}
         {% set rejected = payments | selectattr('status', 'equalto', 'rejected') | list | length %}
-        <div class="stats-grid">
-            <div class="stat-card stat-total">
-                <div class="stat-num">{{ total }}</div>
-                <div class="stat-label">Jami</div>
-            </div>
-            <div class="stat-card stat-reviewing">
-                <div class="stat-num">{{ reviewing }}</div>
-                <div class="stat-label">Kutilmoqda</div>
-            </div>
-            <div class="stat-card stat-approved">
-                <div class="stat-num">{{ approved }}</div>
-                <div class="stat-label">Tasdiqlangan</div>
-            </div>
-            <div class="stat-card stat-rejected">
-                <div class="stat-num">{{ rejected }}</div>
-                <div class="stat-label">Rad etilgan</div>
-            </div>
-        </div>
+        {% set catalog_list = payments | selectattr('product_id') | list %}
+        {% set catalog_count = catalog_list | length %}
+        {% set sub_count = total - catalog_count %}
 
-        <!-- Table -->
-        <div class="table-card">
-            <div class="table-card-header">
-                <h2 class="table-card-title">To'lovlar Ro'yxati</h2>
-                <button class="refresh-btn" onclick="window.location.href = window.location.pathname + '?t=' + new Date().getTime()">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
-                    Yangilash
-                </button>
+        <div class="didox-card">
+            <!-- Sub-tabs with colored badge counters -->
+            <div class="didox-top-bar">
+                <div class="didox-subtabs" id="didoxSubtabs">
+                    <button type="button" class="didox-subtab active" onclick="filterDidoxRows('all', this)">
+                        Barchasi <span class="didox-pill pill-slate">{{ total }}</span>
+                    </button>
+                    <button type="button" class="didox-subtab" onclick="filterDidoxRows('pending', this)">
+                        Tasdiq kutilmoqda <span class="didox-pill pill-orange">{{ reviewing }}</span>
+                    </button>
+                    <button type="button" class="didox-subtab" onclick="filterDidoxRows('approved', this)">
+                        Tasdiqlangan <span class="didox-pill pill-green">{{ approved }}</span>
+                    </button>
+                    <button type="button" class="didox-subtab" onclick="filterDidoxRows('rejected', this)">
+                        Rad etilgan <span class="didox-pill pill-black">{{ rejected }}</span>
+                    </button>
+                    <button type="button" class="didox-subtab" onclick="filterDidoxRows('catalog', this)">
+                        Katalog xaridlari <span class="didox-pill pill-red">{{ catalog_count }}</span>
+                    </button>
+                    <button type="button" class="didox-subtab" onclick="filterDidoxRows('subscription', this)">
+                        Obuna va AI reja <span class="didox-pill pill-purple">{{ sub_count }}</span>
+                    </button>
+                </div>
+
+                <div class="didox-tools">
+                    <input type="text" id="didoxSearchInput" class="didox-search" placeholder="🔍 Mijoz, loyiha, tel yoki ID..." oninput="searchDidoxRows(this.value)">
+                    <button class="refresh-btn" onclick="window.location.href = window.location.pathname + '?t=' + new Date().getTime()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+                        Yangilash
+                    </button>
+                </div>
             </div>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th>Mijoz / Loyiha</th>
-                        <th>Summa</th>
-                        <th>Sana</th>
-                        <th>Holat</th>
-                        <th>Chek</th>
-                        <th>Amallar</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for p in payments %}
-                    <tr id="row-{{ p.id }}">
-                        <td>
-                            <div class="user-name">{{ p.user_name }}</div>
-                            <div class="user-project">{{ p.loyiha_nomi }}</div>
-                            <div style="font-family:monospace;font-size:11px;color:#94a3b8;margin-top:2px">{{ p.id }}</div>
-                        </td>
-                        <td><span class="amount">{{ "{:,}".format(p.amount).replace(",", " ") }} so'm</span></td>
-                        <td><span class="date">{{ p.created_at }}</span></td>
-                        <td>
-                            <span class="badge {{ p.status }}">
-                                {% if p.status == 'pending' %}Kutilmoqda
-                                {% elif p.status == 'reviewing' %}Tekshirilmoqda
-                                {% elif p.status == 'approved' %}Tasdiqlandi
-                                {% elif p.status == 'rejected' %}Rad etildi
-                                {% else %}{{ p.status }}{% endif %}
-                            </span>
-                        </td>
-                        <td>
-                            {% if p.receipt_file %}
+            <!-- Scroll indicator line -->
+            <div class="didox-scroll-line"><div class="didox-scroll-thumb"></div></div>
+
+            <!-- Enterprise Data Grid -->
+            <div class="didox-table-wrap">
+                <table class="didox-table" id="didoxPaymentsTable">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" class="didox-check" onclick="toggleAllDidoxChecks(this)"></th>
+                            <th>HOLATI</th>
+                            <th>HUJJAT / TO'LOV TURI</th>
+                            <th>TO'LOV USULI</th>
+                            <th>YANGILANGAN ▾</th>
+                            <th>KONTRAGENT (MIJOZ / LOYIHA)</th>
+                            <th>TELEFON RAQAMI</th>
+                            <th>BUYURTMA RAQAMI VA SANASI ▾</th>
+                            <th>SHARTNOMA / CHEK SANASI ▾</th>
+                            <th style="text-align:right;">SUMMA (SO'M)</th>
+                            <th style="text-align:right;">AMALLAR</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in payments %}
+                        {% set is_cat = '1' if p.product_id else '0' %}
+                        {% set row_status = 'pending' if p.status in ['pending', 'reviewing'] else p.status %}
+                        <tr id="row-{{ p.id }}"
+                            data-status="{{ row_status }}"
+                            data-kind="{{ 'catalog' if p.product_id else 'subscription' }}">
+                            <td>
+                                <input type="checkbox" class="didox-check row-check" value="{{ p.id }}">
+                            </td>
+                            <td style="text-align:center;">
+                                <span class="didox-dot {{ p.status }}"
+                                      title="{% if p.status == 'approved' %}Tasdiqlangan{% elif p.status in ['pending', 'reviewing'] %}Tasdiq kutilmoqda{% else %}Rad etilgan{% endif %}"></span>
+                            </td>
+                            <td>
+                                {% if p.product_id %}
+                                    <div class="didox-doc-type">Tayyor biznes reja (kiruv.)</div>
+                                    <div class="didox-doc-sub">Katalog PDF</div>
+                                {% elif 'obuna' in (p.loyiha_nomi or '')|lower %}
+                                    <div class="didox-doc-type">Obuna shartnomasi (SK)</div>
+                                    <div class="didox-doc-sub">(kiruv.) Tarif</div>
+                                {% else %}
+                                    <div class="didox-doc-type">Hisob-faktura / AI Reja</div>
+                                    <div class="didox-doc-sub">aktsizsiz (kiruv.)</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if p.payment_provider == 'click' %}
+                                    <span class="didox-method-pill click">Click</span>
+                                {% elif p.payment_provider == 'payme' %}
+                                    <span class="didox-method-pill payme">Payme</span>
+                                {% else %}
+                                    <span class="didox-method-pill low">Karta (Chek)</span>
+                                {% endif %}
+                            </td>
+                            <td style="white-space:nowrap;">
+                                {{ p.updated_date_short or p.created_date_short or p.created_at[:10] }}
+                            </td>
+                            <td>
+                                <div class="didox-kontragent-name">"{{ (p.user_name or 'MIJOZ') | upper }}"</div>
+                                <div class="didox-kontragent-proj">{{ (p.loyiha_nomi or 'BIZNES REJA') | upper }}</div>
+                                <div class="didox-kontragent-id">
+                                    <span>{{ p.id }}</span>
+                                    <button type="button" class="didox-copy-btn" onclick="copyDidoxText('{{ p.id }}', this)" title="Nusxalash">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                    </button>
+                                </div>
+                            </td>
+                            <td>
+                                {% set disp_phone = p.user_phone or (p.user_name if p.user_name and '+' in p.user_name else '') %}
+                                {% if disp_phone %}
+                                <div class="didox-phone-wrap">
+                                    <span>{{ disp_phone }}</span>
+                                    <button type="button" class="didox-copy-btn" onclick="copyDidoxText('{{ disp_phone }}', this)" title="Telefonni nusxalash">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                    </button>
+                                </div>
+                                {% else %}
+                                <span style="color:#94a3b8;font-size:12px;">Ma'lumot yo'q</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% set ord_num = p.order_id or p.id %}
+                                <div class="didox-docnum-wrap">
+                                    <div class="didox-docnum-text">
+                                        <div>{{ ord_num }}</div>
+                                        <div style="color:#64748b;font-size:11.5px;">{{ p.created_date_short or p.created_at[:10] }}</div>
+                                    </div>
+                                    <button type="button" class="didox-copy-btn" onclick="copyDidoxText('{{ ord_num }}', this)" title="Buyurtma raqamini nusxalash">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                    </button>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="didox-docnum-wrap">
+                                    <div class="didox-docnum-text">
+                                        {% if p.receipt_file %}
+                                            <a href="/receipts/{{ p.receipt_file }}" target="_blank" style="color:#3730a3;font-weight:700;text-decoration:none;">
+                                                📎 CHEK {{ p.created_date_short or p.created_at[:10] }}
+                                            </a>
+                                        {% else %}
+                                            <span>OFERTA {{ p.created_date_short or p.created_at[:10] }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <button type="button" class="didox-copy-btn" onclick="copyDidoxText('{{ p.receipt_file or p.loyiha_nomi }}', this)" title="Nusxalash">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                    </button>
+                                </div>
+                            </td>
+                            <td class="didox-sum">
+                                {{ "{:,.0f}".format(p.amount).replace(",", " ") }} so'm
+                            </td>
+                            <td style="text-align:right;white-space:nowrap;">
+                                {% if p.status in ['pending', 'reviewing'] %}
+                                <div class="actions" style="justify-content:flex-end;">
+                                    <button class="btn btn-approve" onclick="openModal('approve','{{ p.id }}')">✓ Tasdiqlash</button>
+                                    <button class="btn btn-reject" onclick="openModal('reject','{{ p.id }}')">✕ Rad</button>
+                                </div>
+                                {% elif p.receipt_file %}
                                 <a href="/receipts/{{ p.receipt_file }}" target="_blank" class="btn btn-view">📎 Ko'rish</a>
-                            {% else %}
-                                <span style="color:#94a3b8;font-size:12px;">—</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if p.status in ['pending', 'reviewing'] %}
-                            <div class="actions">
-                                <button class="btn btn-approve" onclick="openModal('approve','{{ p.id }}')">✓ Tasdiqlash</button>
-                                <button class="btn btn-reject" onclick="openModal('reject','{{ p.id }}')">✕ Rad</button>
-                            </div>
-                            {% else %}
-                            <span style="color:#94a3b8;font-size:12px;">{{ p.admin_note or '—' }}</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                    {% if not payments %}
-                    <tr>
-                        <td colspan="6">
-                            <div class="empty-state">
-                                <div class="empty-icon">📭</div>
-                                <p>Hozircha hech qanday to'lov mavjud emas</p>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endif %}
-                </tbody>
-            </table>
+                                {% else %}
+                                <span style="color:#64748b;font-size:12px;">{{ p.admin_note or 'Tasdiqlangan' }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not payments %}
+                        <tr>
+                            <td colspan="11">
+                                <div class="empty-state">
+                                    <div class="empty-icon">📭</div>
+                                    <p>Hozircha hech qanday to'lov mavjud emas</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -888,6 +1223,55 @@
             window.location.href = window.location.pathname + '?t=' + new Date().getTime();
         }
     }, 30000);
+
+    
+    // --- Didox Table Filtering, Search & Copy ---
+    let _currentDidoxFilter = 'all';
+
+    function filterDidoxRows(filterType, btnEl) {
+        _currentDidoxFilter = filterType;
+        document.querySelectorAll('#didoxSubtabs .didox-subtab').forEach(b => b.classList.remove('active'));
+        if (btnEl) btnEl.classList.add('active');
+        applyDidoxFilterAndSearch();
+    }
+
+    function searchDidoxRows() {
+        applyDidoxFilterAndSearch();
+    }
+
+    function applyDidoxFilterAndSearch() {
+        const q = (document.getElementById('didoxSearchInput')?.value || '').trim().toLowerCase();
+        const rows = document.querySelectorAll('#didoxPaymentsTable tbody tr[data-status]');
+        rows.forEach(row => {
+            const st = row.getAttribute('data-status');
+            const kind = row.getAttribute('data-kind');
+            let matchTab = true;
+            if (_currentDidoxFilter === 'pending') matchTab = (st === 'pending');
+            else if (_currentDidoxFilter === 'approved') matchTab = (st === 'approved');
+            else if (_currentDidoxFilter === 'rejected') matchTab = (st === 'rejected');
+            else if (_currentDidoxFilter === 'catalog') matchTab = (kind === 'catalog');
+            else if (_currentDidoxFilter === 'subscription') matchTab = (kind === 'subscription');
+
+            const matchSearch = !q || row.innerText.toLowerCase().includes(q);
+            row.style.display = (matchTab && matchSearch) ? '' : 'none';
+        });
+    }
+
+    function toggleAllDidoxChecks(master) {
+        document.querySelectorAll('#didoxPaymentsTable .row-check').forEach(ch => {
+            if (ch.closest('tr').style.display !== 'none') {
+                ch.checked = master.checked;
+            }
+        });
+    }
+
+    function copyDidoxText(text, btn) {
+        if (!text) return;
+        navigator.clipboard?.writeText(text);
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<span style="color:#16a34a;font-size:12px;font-weight:700;">✓</span>';
+        setTimeout(() => { btn.innerHTML = orig; }, 1200);
+    }
 
     // --- Tabs Logic ---
     function switchAdminTab(targetId) {

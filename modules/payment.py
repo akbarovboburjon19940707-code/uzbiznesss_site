@@ -70,11 +70,33 @@ def _payment_to_dict(p: PaymentModel) -> dict:
     """
     if not p:
         return {}
+    user_phone = ""
+    try:
+        if p.user and getattr(p.user, "phone", None):
+            user_phone = p.user.phone
+        elif p.user_name:
+            from models.user import User
+            u_match = User.query.filter(
+                db.or_(
+                    db.func.lower(User.first_name) == p.user_name.strip().lower(),
+                    User.phone == p.user_name.strip()
+                )
+            ).first()
+            if u_match and u_match.phone:
+                user_phone = u_match.phone
+            elif any(ch.isdigit() for ch in p.user_name):
+                user_phone = p.user_name
+    except Exception:
+        pass
+
+    dt_created = p.created_at
+    dt_updated = p.updated_at or p.created_at
     return {
         "id": p.id,
         "order_id": p.order_id,
         "user_id": p.user_id,
         "user_name": p.user_name or "",
+        "user_phone": user_phone,
         "loyiha_nomi": p.project_name or "",
         "project_name": p.project_name or "",
         "amount": float(p.amount) if p.amount else PLAN_PRICE,
@@ -83,7 +105,9 @@ def _payment_to_dict(p: PaymentModel) -> dict:
         "payment_status": p.payment_status or "pending",
         "status": p.admin_status or "pending",
         "receipt_file": p.receipt_file,
-        "created_at": p.created_at.strftime("%Y-%m-%d %H:%M:%S") if p.created_at else "",
+        "created_at": dt_created.strftime("%Y-%m-%d %H:%M:%S") if dt_created else "",
+        "created_date_short": dt_created.strftime("%d.%m.%Y") if dt_created else "",
+        "updated_date_short": dt_updated.strftime("%d.%m.%Y") if dt_updated else "",
         "submitted_at": p.submitted_at.strftime("%Y-%m-%d %H:%M:%S") if p.submitted_at else None,
         "reviewed_at": p.reviewed_at.strftime("%Y-%m-%d %H:%M:%S") if p.reviewed_at else None,
         "updated_at": p.updated_at.strftime("%Y-%m-%d %H:%M:%S") if p.updated_at else None,
