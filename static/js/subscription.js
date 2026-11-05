@@ -433,10 +433,15 @@ const SubModule = (() => {
                 // 2. Upload receipt
                 const formData = new FormData();
                 formData.append('receipt', receiptFile);
-                formData.append('user_name', AuthModule.getUser()?.first_name || 'User');
+                formData.append('payment_id', data.payment_id);
+                formData.append('user_name', AuthModule.getUser()?.first_name || AuthModule.getUser()?.phone || 'User');
                 formData.append('loyiha_nomi', `${selectedPlan} obuna`);
 
-                await fetch('/api/payment/submit', { method: 'POST', body: formData });
+                await fetch('/api/payment/submit', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
 
                 // 3. Show status
                 showSection('status');

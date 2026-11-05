@@ -568,6 +568,17 @@ const CabinetModule = (() => {
                 year: 'numeric', month: 'short', day: 'numeric'
             }) : '';
 
+            let actionsHtml = '';
+            if (p.pdf_url) {
+                actionsHtml += `<a href="${p.pdf_url}" target="_blank" class="cab-btn cab-btn-primary">📥 PDF</a>`;
+            }
+            if (p.word_url) {
+                actionsHtml += `<a href="${p.word_url}" target="_blank" class="cab-btn ${p.pdf_url ? 'cab-btn-outline' : 'cab-btn-primary'}">📥 Word yuklab olish</a>`;
+            }
+            if (!actionsHtml) {
+                actionsHtml = `<a href="/dashboard" class="cab-btn cab-btn-outline">🔄 Qayta yaratish</a>`;
+            }
+
             html += `
                 <div class="cab-plan-item">
                     <div class="cab-plan-item-icon generated">📄</div>
@@ -579,8 +590,7 @@ const CabinetModule = (() => {
                         </div>
                     </div>
                     <div class="cab-plan-item-actions">
-                        ${p.pdf_url ? `<a href="${p.pdf_url}" target="_blank" class="cab-btn cab-btn-primary">📥 PDF</a>` : ''}
-                        ${p.word_url ? `<a href="${p.word_url}" target="_blank" class="cab-btn cab-btn-outline">📝 Word</a>` : ''}
+                        ${actionsHtml}
                     </div>
                 </div>`;
         });
@@ -601,6 +611,15 @@ const CabinetModule = (() => {
             }) : '';
             const price = p.price ? Number(p.price).toLocaleString('uz-UZ') + " so'm" : '';
 
+            let actionHtml = '';
+            if (p.download_url) {
+                actionHtml = `<a href="${p.download_url}" target="_blank" class="cab-btn cab-btn-primary">📥 Yuklab olish</a>`;
+            } else if (p.status === 'pending' || p.status === 'reviewing') {
+                actionHtml = `<span class="cab-status-badge pending">⏳ Tekshirilmoqda</span>`;
+            } else if (p.status === 'rejected') {
+                actionHtml = `<span class="cab-status-badge failed">Rad etilgan</span>`;
+            }
+
             html += `
                 <div class="cab-plan-item">
                     <div class="cab-plan-item-icon purchased">🛒</div>
@@ -613,7 +632,7 @@ const CabinetModule = (() => {
                         </div>
                     </div>
                     <div class="cab-plan-item-actions">
-                        ${p.download_url ? `<a href="${p.download_url}" target="_blank" class="cab-btn cab-btn-primary">📥 Yuklab olish</a>` : ''}
+                        ${actionHtml}
                     </div>
                 </div>`;
         });

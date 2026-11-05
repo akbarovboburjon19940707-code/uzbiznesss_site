@@ -322,7 +322,7 @@ def api_subscription_purchase():
 
         from models.user import User
         user = db.session.get(User, user_id)
-        user_name = user.first_name if user else 'User'
+        user_name = (user.first_name or user.phone or 'User') if user else 'User'
 
         base_url = request.host_url.rstrip("/")
 
@@ -330,7 +330,8 @@ def api_subscription_purchase():
             payment = create_click_payment(
                 user_name=user_name,
                 loyiha_nomi=f"{plan_display} obuna",
-                custom_amount=plan_price
+                custom_amount=plan_price,
+                user_id=user_id
             )
             order_id = payment["order_id"]
             return_url = f"{base_url}/click/return?order_id={order_id}"
@@ -358,7 +359,8 @@ def api_subscription_purchase():
             payment = create_payme_payment(
                 user_name=user_name,
                 loyiha_nomi=f"{plan_display} obuna",
-                custom_amount=plan_price
+                custom_amount=plan_price,
+                user_id=user_id
             )
             order_id = payment["order_id"]
             return_url = base64.b64encode(
@@ -387,7 +389,8 @@ def api_subscription_purchase():
             payment = create_payment(
                 user_name=user_name,
                 loyiha_nomi=f"{plan_display} obuna",
-                custom_amount=plan_price
+                custom_amount=plan_price,
+                user_id=user_id
             )
 
             return jsonify({
@@ -577,6 +580,35 @@ def api_user_password_update():
         return jsonify({"success": False, "error": "Server xatosi"}), 500
 
 
+def _get_current_user_optional():
+    """Request headerdan ixtiyoriy ravishda foydalanuvchini aniqlash."""
+    try:
+        from modules.auth import decode_token
+        from models.user import User
+        auth_h = request.headers.get("Authorization", "")
+        if auth_h.startswith("Bearer "):
+            payload = decode_token(auth_h[7:])
+            if payload and payload.get("type") == "access" and payload.get("sub"):
+                return db.session.get(User, payload["sub"])
+    except Exception:
+        pass
+    return None
+
+
+def _build_user_payment_filter(user):
+    """Foydalanuvchiga tegishli Payment yozuvlarini topish uchun SQLAlchemy filter."""
+    from models.payment import Payment
+    conds = [Payment.user_id == user.id]
+    if user.phone:
+        clean_phone = user.phone.strip()
+        conds.append(Payment.user_name == clean_phone)
+        if len(clean_phone) >= 9:
+            conds.append(Payment.user_name.ilike(f"%{clean_phone[-9:]}%"))
+    if user.first_name and len(user.first_name.strip()) >= 2:
+        conds.append(db.func.lower(Payment.user_name) == user.first_name.strip().lower())
+    return db.or_(*conds)
+
+
 @app.route("/api/user/payments", methods=["GET"])
 @csrf.exempt
 def api_user_payments():
@@ -598,25 +630,30 @@ def api_user_payments():
         if not user:
             return jsonify({"success": True, "payments": []})
 
-        # User nomi bo'yicha to'lovlarni topish
         payments = Payment.query.filter(
-            db.or_(
-                Payment.user_name == user.first_name,
-                Payment.user_name == user.phone,
-            )
+            _build_user_payment_filter(user)
         ).order_by(Payment.created_at.desc()).limit(50).all()
 
         result = []
+        dirty = False
         for p in payments:
+            if not p.user_id:
+                p.user_id = user.id
+                dirty = True
             result.append({
                 "id": p.id,
                 "created_at": p.created_at.isoformat() if p.created_at else None,
-                "loyiha_nomi": p.loyiha_nomi,
+                "loyiha_nomi": p.project_name or "Biznes reja",
                 "amount": float(p.amount) if p.amount else None,
-                "payment_method": p.payment_method,
-                "payment_status": p.payment_status,
-                "status": p.status if hasattr(p, 'status') else p.payment_status,
+                "payment_method": p.payment_provider or "card",
+                "payment_status": p.payment_status or "pending",
+                "status": p.admin_status or p.payment_status or "pending",
             })
+        if dirty:
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
 
         return jsonify({"success": True, "payments": result})
 
@@ -631,7 +668,8 @@ def api_user_generated_plans():
     """Foydalanuvchi yaratgan biznes rejalar ro'yxati."""
     from modules.auth import decode_token
     from models.user import User
-    from models.business import BusinessPlan
+    from models.business import GeneratedFile
+    from models.system import AiRequest as AIUsageLog
 
     auth_header = request.headers.get('Authorization', '')
     if not auth_header.startswith('Bearer '):
@@ -646,21 +684,74 @@ def api_user_generated_plans():
         if not user:
             return jsonify({"success": True, "plans": []})
 
-        # Foydalanuvchi yaratgan rejalarni topish
-        plans = BusinessPlan.query.filter_by(
+        gfiles = GeneratedFile.query.filter_by(
             user_id=user.id
-        ).order_by(BusinessPlan.created_at.desc()).limit(50).all()
+        ).order_by(GeneratedFile.created_at.desc()).limit(50).all()
 
         result = []
-        for p in plans:
+        seen_sessions = set()
+        for gf in gfiles:
+            if gf.session_id:
+                seen_sessions.add(gf.session_id)
+            cat = ""
+            r2_url = None
+            if gf.generation_params:
+                try:
+                    gp = json.loads(gf.generation_params)
+                    cat = gp.get("faoliyat_turi") or ""
+                    r2_url = gp.get("r2_url")
+                except Exception:
+                    pass
+            word_url = None
+            if gf.session_id and gf.file_name:
+                word_url = f"/api/download_document/{gf.session_id}/{urllib.parse.quote(gf.file_name)}"
+            elif r2_url:
+                word_url = r2_url
+
             result.append({
-                "id": p.id,
-                "title": p.loyiha_nomi or p.biznes_turi or "Biznes reja",
-                "category": p.biznes_turi or "",
-                "created_at": p.created_at.isoformat() if p.created_at else None,
-                "pdf_url": f"/api/download/{p.id}/pdf" if p.pdf_file else None,
-                "word_url": f"/api/download/{p.id}/word" if p.word_file else None,
+                "id": gf.id,
+                "title": gf.project_name or gf.file_name or "Biznes reja",
+                "category": cat,
+                "created_at": gf.created_at.isoformat() if gf.created_at else None,
+                "pdf_url": None,
+                "word_url": word_url,
             })
+
+        # Oldin yaratilgan (AIUsageLog da bor, lekin GeneratedFile ga yozilmagan) rejalarni tiklash
+        try:
+            usage_logs = AIUsageLog.query.filter_by(
+                user_id=user.id,
+                request_type='business_plan'
+            ).order_by(AIUsageLog.created_at.desc()).limit(30).all()
+            for ulog in usage_logs:
+                sid = ulog.session_id
+                if sid and sid in seen_sessions:
+                    continue
+                if sid:
+                    seen_sessions.add(sid)
+                word_url = None
+                title = "Yaratilgan biznes reja"
+                if sid:
+                    for base_folder in (TEMP_BASE, os.path.join(BASE_DIR, "saved_plans")):
+                        sdir = os.path.join(base_folder, sid)
+                        if os.path.isdir(sdir):
+                            for fn in os.listdir(sdir):
+                                if fn.lower().endswith(".docx"):
+                                    word_url = f"/api/download_document/{sid}/{urllib.parse.quote(fn)}"
+                                    title = fn.replace(".docx", "").replace("_", " ")
+                                    break
+                        if word_url:
+                            break
+                result.append({
+                    "id": f"usage_{ulog.id}",
+                    "title": title,
+                    "category": "AI Biznes Reja",
+                    "created_at": ulog.created_at.isoformat() if ulog.created_at else None,
+                    "pdf_url": None,
+                    "word_url": word_url,
+                })
+        except Exception as ue:
+            logger.warning(f"Usage log fallback warning: {ue}")
 
         return jsonify({"success": True, "plans": result})
 
@@ -672,7 +763,7 @@ def api_user_generated_plans():
 @app.route("/api/user/purchased-plans", methods=["GET"])
 @csrf.exempt
 def api_user_purchased_plans():
-    """Foydalanuvchi katalogdan sotib olgan rejalar."""
+    """Foydalanuvchi katalogdan sotib olgan tayyor biznes rejalar."""
     from modules.auth import decode_token
     from models.user import User
     from models.payment import Payment
@@ -690,28 +781,50 @@ def api_user_purchased_plans():
         if not user:
             return jsonify({"success": True, "plans": []})
 
-        # Catalog to'lovlarini topish (tasdiqlangan)
         payments = Payment.query.filter(
             db.and_(
-                db.or_(
-                    Payment.user_name == user.first_name,
-                    Payment.user_name == user.phone,
-                ),
-                Payment.payment_status == 'success',
-                Payment.payment_type == 'catalog',
+                Payment.product_id.isnot(None),
+                _build_user_payment_filter(user),
             )
         ).order_by(Payment.created_at.desc()).limit(50).all()
 
         result = []
+        dirty = False
         for p in payments:
+            if not p.user_id:
+                p.user_id = user.id
+                dirty = True
+
+            prod = get_product_by_id(p.product_id) if p.product_id else None
+            title = (prod.get("title") if prod else None) or p.project_name or "Tayyor biznes reja"
+            category = (prod.get("category") if prod else None) or ""
+
+            provider = p.payment_provider or "card"
+            if provider in ("click", "payme"):
+                is_approved = (p.payment_status == "success")
+                is_rejected = (p.payment_status in ("failed", "cancelled"))
+            else:
+                is_approved = (p.admin_status == "approved" or p.payment_status == "success")
+                is_rejected = (p.admin_status == "rejected" or p.payment_status == "failed")
+
+            status_str = "approved" if is_approved else ("rejected" if is_rejected else "pending")
+
             result.append({
                 "id": p.id,
-                "title": p.loyiha_nomi or "Biznes reja",
-                "category": "",
+                "product_id": p.product_id,
+                "title": title,
+                "category": category,
                 "price": float(p.amount) if p.amount else None,
                 "purchased_at": p.created_at.isoformat() if p.created_at else None,
-                "download_url": f"/api/catalog/download/{p.prepare_id}" if hasattr(p, 'prepare_id') and p.prepare_id else None,
+                "status": status_str,
+                "download_url": f"/api/catalog/download/{p.id}" if is_approved else None,
             })
+
+        if dirty:
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
 
         return jsonify({"success": True, "plans": result})
 
@@ -1383,10 +1496,26 @@ def api_payment_submit():
             
         user_name = request.form.get("user_name", "Noma'lum foydalanuvchi")
         loyiha_nomi = request.form.get("loyiha_nomi", "Biznes Reja")
-        
-        # 1. To'lov yozuvini yaratish
-        payment = create_payment(user_name, loyiha_nomi)
-        payment_id = payment["id"]
+        existing_payment_id = (request.form.get("payment_id") or "").strip()
+        curr_user = _get_current_user_optional()
+        curr_uid = curr_user.id if curr_user else None
+
+        # 1. Mavjud to'lov yozuvini tekshirish yoki yangisini yaratish
+        existing_payment = get_payment(existing_payment_id) if existing_payment_id else None
+        if existing_payment:
+            payment_id = existing_payment["id"]
+            if curr_uid:
+                try:
+                    from models.payment import Payment as _PM
+                    _p_obj = db.session.get(_PM, payment_id)
+                    if _p_obj and not _p_obj.user_id:
+                        _p_obj.user_id = curr_uid
+                        db.session.commit()
+                except Exception:
+                    db.session.rollback()
+        else:
+            payment = create_payment(user_name, loyiha_nomi, user_id=curr_uid)
+            payment_id = payment["id"]
         
         # 2. Faylni yuklash
         filename = save_receipt_file(payment_id, file)
@@ -2094,7 +2223,14 @@ def api_catalog_purchase():
         d = request.get_json() or {}
         product_id = d.get("product_id")
         payment_method = d.get("payment_method", "card")
-        user_name = d.get("user_name", "Noma'lum")
+        user_name = (d.get("user_name") or "").strip()
+        curr_user = _get_current_user_optional()
+        curr_uid = curr_user.id if curr_user else None
+        if not user_name or user_name == "Noma'lum":
+            if curr_user:
+                user_name = curr_user.first_name or curr_user.phone or "Foydalanuvchi"
+            else:
+                user_name = "Noma'lum"
 
         if not product_id:
             return jsonify({"success": False, "error": "Mahsulot tanlanmadi"}), 400
@@ -2115,7 +2251,8 @@ def api_catalog_purchase():
                 user_name=user_name,
                 loyiha_nomi=product_title,
                 product_id=product_id,
-                custom_amount=product_price
+                custom_amount=product_price,
+                user_id=curr_uid
             )
             order_id = payment["order_id"]
             return_url = f"{base_url}/click/return?order_id={order_id}"
@@ -2140,7 +2277,8 @@ def api_catalog_purchase():
                 user_name=user_name,
                 loyiha_nomi=product_title,
                 product_id=product_id,
-                custom_amount=product_price
+                custom_amount=product_price,
+                user_id=curr_uid
             )
             order_id = payment["order_id"]
             return_url = base64.b64encode(
@@ -2167,7 +2305,8 @@ def api_catalog_purchase():
                 user_name=user_name,
                 loyiha_nomi=product_title,
                 product_id=product_id,
-                custom_amount=product_price
+                custom_amount=product_price,
+                user_id=curr_uid
             )
             return jsonify({
                 "success": True,
@@ -2594,13 +2733,16 @@ def api_download_doc(sid, filename):
         logger.warning(f"Xavfsizlik: Directory traversal urinishi! sid={sid}, file={filename}")
         return "Noto'g'ri so'rov", 400
         
-    session_dir = os.path.join(TEMP_BASE, sid)
     safe_filename = os.path.basename(filename)
-    file_path = os.path.join(session_dir, safe_filename)
-    
+    file_path = os.path.join(TEMP_BASE, sid, safe_filename)
+    if not os.path.exists(file_path):
+        saved_path = os.path.join(BASE_DIR, "saved_plans", sid, safe_filename)
+        if os.path.exists(saved_path):
+            file_path = saved_path
+
     if not os.path.exists(file_path):
         logger.error(f"Download Error: Fayl topilmadi! Path: {file_path}")
-        return "Fayl topilmadi veya eskirgan. Iltimos, qaytadan yuklab ko'ring.", 404
+        return "Fayl topilmadi yoki eskirgan. Iltimos, qaytadan yuklab ko'ring.", 404
         
     logger.info(f"Hujjat jo'natilmoqda: {file_path}")
     return send_file(file_path, as_attachment=True, download_name=safe_filename)
@@ -2768,8 +2910,38 @@ def save():
         # 7. Word yaratish + Dinamik jadvallar qo'shish (Barcha Excel jadvallari Word oxiriga qo'shiladi)
         word_path = os.path.join(session_dir, pro_filename)
         create_word_document(WORD_TEMPLATE, word_path, ai_context, uploaded_files, model=model)
-        
+
         logger.info(f"Word tayyor: {sid} -> {pro_filename}")
+
+        # 7b. Shaxsiy kabinet uchun faylni doimiy papkaga nusxalash va GeneratedFile jadvaliga yozish
+        try:
+            saved_dir = os.path.join(BASE_DIR, "saved_plans", sid)
+            os.makedirs(saved_dir, exist_ok=True)
+            saved_word_path = os.path.join(saved_dir, pro_filename)
+            shutil.copy2(word_path, saved_word_path)
+
+            from models.business import GeneratedFile
+            gf = GeneratedFile(
+                user_id=_gen_user_id,
+                session_id=sid,
+                file_type="docx",
+                file_path=saved_word_path,
+                file_name=pro_filename,
+                file_size_bytes=os.path.getsize(saved_word_path) if os.path.exists(saved_word_path) else 0,
+                project_name=request.form.get("loyiha_nomi", "Biznes reja"),
+                generation_params=json.dumps({
+                    "faoliyat_turi": request.form.get("faoliyat_turi", ""),
+                    "tashabbuskor": request.form.get("tashabbuskor", ""),
+                }, ensure_ascii=False),
+                ai_provider=_ai_provider,
+                generation_time_ms=int((time.time() - _ai_start_time) * 1000),
+            )
+            db.session.add(gf)
+            db.session.commit()
+            logger.info(f"[CABINET] GeneratedFile saqlandi: user={_gen_user_id}, file={pro_filename}")
+        except Exception as _gfe:
+            db.session.rollback()
+            logger.warning(f"[CABINET] GeneratedFile saqlashda xatolik: {_gfe}")
         
         if request.form.get("ajax") == "true":
             quoted_name = urllib.parse.quote(pro_filename)

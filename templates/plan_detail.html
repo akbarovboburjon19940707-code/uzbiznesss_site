@@ -605,13 +605,26 @@
         const CURRENT_PRODUCT_ID = "{{ plan.id }}";
 
         async function quickBuy(method) {
-            const userName = prompt("Iltimos, ismingiz va telefon raqamingizni kiriting:", "");
-            if (!userName || !userName.trim()) return;
+            const token = localStorage.getItem('auth_token');
+            let defaultName = "";
+            try {
+                const u = JSON.parse(localStorage.getItem('user_data') || 'null');
+                if (u) defaultName = u.first_name || u.phone || "";
+            } catch (e) {}
+
+            let userName = defaultName;
+            if (!userName) {
+                userName = prompt("Iltimos, ismingiz va telefon raqamingizni kiriting:", "");
+                if (!userName || !userName.trim()) return;
+            }
 
             try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
                 const resp = await fetch('/api/catalog/purchase', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: headers,
                     body: JSON.stringify({
                         product_id: CURRENT_PRODUCT_ID,
                         payment_method: method,

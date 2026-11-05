@@ -541,9 +541,12 @@ async function openProductDetailModal(productId) {
     if (nameEl) nameEl.textContent = product.title || 'Biznes reja';
     if (priceEl) priceEl.textContent = product.price_formatted || `${product.price || 30000} so'm`;
 
-    // Reset form inputs
+    // Reset form inputs (kirgan foydalanuvchi ismini avtomatik to'ldirish)
     const userInp = document.getElementById('catalogUserName');
-    if (userInp) userInp.value = '';
+    if (userInp) {
+        const u = (typeof AuthModule !== 'undefined' && AuthModule.getUser && AuthModule.getUser()) || null;
+        userInp.value = u ? (u.first_name || u.phone || '') : '';
+    }
     const cardPan = document.getElementById('catalogCardPanel');
     if (cardPan) cardPan.style.display = 'none';
     selectCatalogPayMethod('click');
@@ -676,6 +679,10 @@ async function submitCatalogPayment() {
     btn.querySelector('span').textContent = 'Yuklanmoqda...';
 
     try {
+        const _authToken = (typeof AuthModule !== 'undefined' && AuthModule.getToken) ? AuthModule.getToken() : localStorage.getItem('auth_token');
+        const _jsonHeaders = { 'Content-Type': 'application/json' };
+        if (_authToken) _jsonHeaders['Authorization'] = `Bearer ${_authToken}`;
+
         if (_currentPayMethod === 'card') {
             const receiptFile = document.getElementById('catalogReceiptFile').files[0];
             if (!receiptFile) {
@@ -688,7 +695,7 @@ async function submitCatalogPayment() {
             // 1. To'lov yaratish
             const resp = await fetch('/api/catalog/purchase', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: _jsonHeaders,
                 body: JSON.stringify({
                     product_id: _currentProductId,
                     payment_method: 'card',
@@ -700,14 +707,18 @@ async function submitCatalogPayment() {
 
             _currentPaymentId = data.payment_id;
 
-            // 2. Receipt yuklash
+            // 2. Receipt yuklash (shu payment_id ga biriktirish)
             const formData = new FormData();
             formData.append('receipt', receiptFile);
+            formData.append('payment_id', data.payment_id);
             formData.append('user_name', userName);
-            formData.append('loyiha_nomi', 'Tayyor biznes reja');
+            formData.append('loyiha_nomi', document.getElementById('purchaseProductName')?.textContent || 'Tayyor biznes reja');
 
+            const _subHeaders = {};
+            if (_authToken) _subHeaders['Authorization'] = `Bearer ${_authToken}`;
             const submitResp = await fetch('/api/payment/submit', {
                 method: 'POST',
+                headers: _subHeaders,
                 body: formData
             });
 
@@ -721,7 +732,7 @@ async function submitCatalogPayment() {
             // Click / Payme
             const resp = await fetch('/api/catalog/purchase', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: _jsonHeaders,
                 body: JSON.stringify({
                     product_id: _currentProductId,
                     payment_method: _currentPayMethod,
